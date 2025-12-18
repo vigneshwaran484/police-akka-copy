@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "781806321386",
+    "project_id": "tn-police-app-ac17a",
+    "storage_bucket": "tn-police-app-ac17a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781806321386:android:283d2dd2ae4592360d2193",
+        "android_client_info": {
+          "package_name": "com.example.police_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtLHBtXgo0ZRaAT4diXS1oKcJODFlvjPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
