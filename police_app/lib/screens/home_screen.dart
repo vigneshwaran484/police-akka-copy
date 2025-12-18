@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'report_incident_screen.dart';
 import 'guidance_screen.dart';
+import 'write_to_us_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final String userName;
@@ -51,7 +52,9 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildNavButton('ASK US', () {}),
+                    _buildNavButton('WRITE TO US', () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const WriteToUsScreen()));
+                    }),
                     _buildNavButton('GUIDANCE\nAND RULES', () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const GuidanceScreen()));
                     }),
