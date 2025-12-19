@@ -131,11 +131,6 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Write to us
-              TextButton(
-                onPressed: () {},
-                child: const Text('WRITE TO US', style: TextStyle(color: Color(0xFF1E3A8A), decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
-              ),
               const SizedBox(height: 30),
             ],
           ),
