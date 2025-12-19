@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'report_incident_screen.dart';
 import 'guidance_screen.dart';
+import 'citizen_chat_screen.dart';
+import '../services/firebase_service.dart';
 
 class HomeScreen extends StatelessWidget {
   final String userName;
@@ -15,7 +17,12 @@ class HomeScreen extends StatelessWidget {
     required this.aadhar,
   });
 
-  void _sendSOS(BuildContext context) {
+  void _sendSOS(BuildContext context) async {
+    await FirebaseService.sendSOS(
+      userId: phone,
+      location: 'Location from app',
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -56,7 +63,16 @@ class HomeScreen extends StatelessWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const GuidanceScreen()));
                     }),
                     _buildNavButton('REPORT\nINCIDENT', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportIncidentScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReportIncidentScreen(
+                            userName: userName,
+                            phone: phone,
+                            aadhar: aadhar,
+                          ),
+                        ),
+                      );
                     }),
                     _buildNavButton('MY\nPROFILE', () {
                       Navigator.push(
@@ -79,7 +95,16 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportIncidentScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReportIncidentScreen(
+                          userName: userName,
+                          phone: phone,
+                          aadhar: aadhar,
+                        ),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
@@ -119,11 +144,9 @@ class HomeScreen extends StatelessWidget {
                       const Expanded(
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'ENTER YOUR QUERY HERE ....',
-                              border: InputBorder.none,
-                            ),
+                          child: Text(
+                            'ENTER YOUR QUERY HERE ....',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
                       ),
@@ -135,7 +158,18 @@ class HomeScreen extends StatelessWidget {
                         ),
                         child: IconButton(
                           icon: const Icon(Icons.arrow_upward),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CitizenChatScreen(
+                                  userName: userName,
+                                  phone: phone,
+                                  aadhar: aadhar,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],

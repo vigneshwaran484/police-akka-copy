@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 
 class ReportIncidentScreen extends StatefulWidget {
-  const ReportIncidentScreen({super.key});
+  final String userName;
+  final String phone;
+  final String aadhar;
+
+  const ReportIncidentScreen({
+    super.key,
+    required this.userName,
+    required this.phone,
+    required this.aadhar,
+  });
 
   @override
   State<ReportIncidentScreen> createState() => _ReportIncidentScreenState();
@@ -21,13 +31,21 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     {'name': 'OTHER', 'icon': Icons.more_horiz, 'color': Colors.grey},
   ];
 
-  void _submitReport() {
+  Future<void> _submitReport() async {
     if (selectedType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an incident type')),
       );
       return;
     }
+
+    await FirebaseService.reportIncident(
+      userId: widget.phone,
+      type: selectedType!,
+      description: _descriptionController.text.trim(),
+      location: _locationController.text.trim(),
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

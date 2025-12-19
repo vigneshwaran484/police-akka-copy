@@ -32,7 +32,6 @@ class PoliceFirebaseService {
     return _firestore
         .collection('incidents')
         .where('status', isEqualTo: 'pending')
-        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -41,7 +40,6 @@ class PoliceFirebaseService {
     return _firestore
         .collection('incidents')
         .where('status', isEqualTo: 'resolved')
-        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -63,7 +61,6 @@ class PoliceFirebaseService {
     return _firestore
         .collection('sos_alerts')
         .where('status', isEqualTo: 'active')
-        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 

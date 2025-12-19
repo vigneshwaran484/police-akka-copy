@@ -62,11 +62,14 @@ class FirebaseService {
     required String description,
     required String location,
   }) async {
+    final now = DateTime.now().toString().substring(0, 16);
     DocumentReference doc = await _firestore.collection('incidents').add({
       'userId': userId,
       'type': type,
       'description': description,
       'location': location,
+      'address': location,
+      'time': now,
       'status': 'pending',
       'severity': _getSeverity(type),
       'timestamp': FieldValue.serverTimestamp(),
@@ -90,14 +93,20 @@ class FirebaseService {
   // Submit Query/Review
   static Future<void> submitQuery({
     required String userId,
+    required String name,
+    required String phone,
     required String type,
     required String message,
   }) async {
+    final now = DateTime.now().toString().substring(0, 16);
     await _firestore.collection('citizen_queries').add({
       'userId': userId,
+      'citizen': name,
+      'phone': phone,
       'type': type,
       'message': message,
       'status': 'pending',
+      'date': now,
       'timestamp': FieldValue.serverTimestamp(),
     });
   }

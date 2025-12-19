@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/firebase_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,26 +14,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   int? _hoveredIncident;
 
-  final List<Map<String, dynamic>> _incidents = [
-    {'type': 'ACCIDENT', 'color': Colors.red, 'address': 'GANDHI STREET, TNAGAR', 'time': '10:40am'},
-    {'type': 'Vandalism', 'color': Colors.orange, 'address': 'MG ROAD, CHENNAI', 'time': '11:20am'},
-    {'type': 'LOST', 'color': Colors.green, 'address': 'ANNA NAGAR, CHENNAI', 'time': '09:15am'},
+  // Static demo data (kept only for solved cases & citizen data)
+  final List<Map<String, dynamic>> _incidentsDemo = [
+    {'type': 'ACCIDENT', 'color': Colors.red},
+    {'type': 'Vandalism', 'color': Colors.orange},
+    {'type': 'LOST', 'color': Colors.green},
   ];
-
-  final List<Map<String, dynamic>> _pendingReports = [
-    {'type': 'ACCIDENT', 'address': 'GANDHI STREET, TNAGAR', 'time': '10:40am', 'severity': 'high'},
-    {'type': 'Theft', 'address': 'MOUNT ROAD', 'time': '11:00am', 'severity': 'high'},
-    {'type': 'Vandalism', 'address': 'ADYAR', 'time': '09:30am', 'severity': 'medium'},
-    {'type': 'Lost Item', 'address': 'T NAGAR', 'time': '08:45am', 'severity': 'low'},
-    {'type': 'Assault', 'address': 'MYLAPORE', 'time': '12:15pm', 'severity': 'high'},
-    {'type': 'Noise', 'address': 'VELACHERY', 'time': '02:30pm', 'severity': 'low'},
-  ];
-
-  final _sosAlert = {
-    'place': 'Anna Nagar',
-    'time': '10:45 AM',
-    'person': 'Citizen #1234',
-  };
 
   final List<Map<String, dynamic>> _solvedCases = [
     {'id': 'CASE-001', 'type': 'Theft', 'location': 'Anna Nagar', 'date': '15 Dec 2025', 'citizen': 'Rajesh Kumar', 'status': 'Recovered'},
@@ -49,13 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'name': 'Suresh Babu', 'phone': '9876543214', 'aadhar': '5678-9012-3456', 'cases': 2, 'address': 'Velachery, Chennai'},
   ];
 
-  final List<Map<String, dynamic>> _citizenQueries = [
-    {'citizen': 'Rajesh Kumar', 'type': 'Review', 'message': 'Please update my case status, it has been pending for 3 days.', 'date': '17 Dec 2025', 'status': 'pending'},
-    {'citizen': 'Priya Sharma', 'type': 'Change Request', 'message': 'Wrong address mentioned in my report. Please correct to T Nagar Main Road.', 'date': '16 Dec 2025', 'status': 'pending'},
-    {'citizen': 'Mohammed Ali', 'type': 'Feedback', 'message': 'Thank you for quick resolution of my case. Excellent service!', 'date': '15 Dec 2025', 'status': 'resolved'},
-    {'citizen': 'Lakshmi Devi', 'type': 'Review', 'message': 'Need more details about the investigation progress.', 'date': '15 Dec 2025', 'status': 'pending'},
-    {'citizen': 'Suresh Babu', 'type': 'Change Request', 'message': 'Please change the incident time from 10:00 AM to 11:30 AM.', 'date': '14 Dec 2025', 'status': 'resolved'},
-  ];
+  // Citizen queries now come from Firestore
 
   @override
   Widget build(BuildContext context) {
@@ -236,46 +218,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildIncidentReportsSection(BoxConstraints constraints) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'INCIDENT REPORTS',
-          style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 24),
-        ..._incidents.map((incident) => _buildIncidentCard(incident)),
-      ],
+    return StreamBuilder<QuerySnapshot>(
+      stream: PoliceFirebaseService.getAllIncidents(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Text('Error loading incidents');
+        }
+        final docs = snapshot.data?.docs ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'INCIDENT REPORTS',
+              style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            if (docs.isEmpty)
+              const Text('No incidents reported yet.')
+            else
+              ...docs.take(3).map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return _buildIncidentCard({
+                  'type': (data['type'] ?? 'INCIDENT').toString(),
+                  'color': _getSeverityColor((data['severity'] ?? 'low') as String),
+                  'description': (data['description'] ?? '').toString(),
+                  'address': data['address'] ?? data['location'],
+                  'location': data['location'],
+                  'timestamp': data['timestamp'],
+                  'time': data['time'],
+                });
+              }),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildSOSSection(BoxConstraints constraints) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('SOS', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF6B6B),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('details such as', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 20)),
-              const SizedBox(height: 12),
-              Text('place: ${_sosAlert['place']}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 8),
-              Text('time: ${_sosAlert['time']}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 8),
-              Text('person: ${_sosAlert['person']}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-      ],
+    return StreamBuilder<QuerySnapshot>(
+      stream: PoliceFirebaseService.getSOSAlerts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Text('Error loading SOS alerts');
+        }
+        final docs = snapshot.data?.docs ?? [];
+        final sorted = List<QueryDocumentSnapshot>.from(docs);
+        sorted.sort((a, b) {
+          final da = a.data() as Map<String, dynamic>;
+          final db = b.data() as Map<String, dynamic>;
+          final ta = da['timestamp'];
+          final tb = db['timestamp'];
+          final ma = ta is Timestamp ? ta.millisecondsSinceEpoch : 0;
+          final mb = tb is Timestamp ? tb.millisecondsSinceEpoch : 0;
+          return mb.compareTo(ma);
+        });
+        final latest = sorted.isNotEmpty ? sorted.first.data() as Map<String, dynamic> : null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('SOS', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B6B),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: latest == null
+                  ? const Text('No active SOS alerts', style: TextStyle(color: Colors.white, fontSize: 18))
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Active SOS Alert', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 20)),
+                        const SizedBox(height: 12),
+                        Text('location: ${latest['location'] ?? 'Unknown'}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        Text('time: ${_formatTimestamp(latest['timestamp'] ?? latest['time'])}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        Text('person: ${latest['userId'] ?? 'Citizen'}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -293,11 +327,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            incident['type'],
-            style: TextStyle(color: incident['color'], fontSize: 24, fontWeight: FontWeight.bold),
+            (incident['type'] ?? 'INCIDENT').toString().toUpperCase(),
+            style: TextStyle(color: incident['color'] ?? Colors.grey, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          Text('description of the incident\nsuch as place, time etc', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          if ((incident['description'] ?? '').toString().isNotEmpty)
+            Text(incident['description'], style: TextStyle(color: Colors.grey[800], fontSize: 16))
+          else
+            Text('No description provided', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          const SizedBox(height: 8),
+          Text('address: ${incident['address'] ?? incident['location'] ?? 'Unknown'}', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+          const SizedBox(height: 4),
+          Text('time: ${_formatTimestamp(incident['timestamp'] ?? incident['time'])}', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
         ],
       ),
     );
@@ -309,44 +350,118 @@ class _DashboardScreenState extends State<DashboardScreen> {
         int crossAxisCount = 3;
         if (constraints.maxWidth < 800) crossAxisCount = 2;
         if (constraints.maxWidth < 500) crossAxisCount = 1;
-        
-        return Container(
-          color: const Color(0xFFE8EBF0),
-          child: Stack(
-            children: [
-              Center(
-                child: Opacity(
-                  opacity: 0.1,
-                  child: Icon(Icons.local_police, size: constraints.maxHeight * 0.5, color: Colors.grey),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(constraints.maxWidth * 0.03),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PENDING INCIDENT REPORTS',
-                      style: TextStyle(color: const Color(0xFF1E3A8A), fontSize: constraints.maxWidth * 0.025 > 28 ? 28 : constraints.maxWidth * 0.025, fontWeight: FontWeight.bold),
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: PoliceFirebaseService.getPendingIncidents(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text('Error loading reports'));
+            }
+            final docs = snapshot.data?.docs ?? [];
+            final sorted = List<QueryDocumentSnapshot>.from(docs);
+            sorted.sort((a, b) {
+              final da = a.data() as Map<String, dynamic>;
+              final db = b.data() as Map<String, dynamic>;
+              final ta = da['timestamp'];
+              final tb = db['timestamp'];
+              final ma = ta is Timestamp ? ta.millisecondsSinceEpoch : 0;
+              final mb = tb is Timestamp ? tb.millisecondsSinceEpoch : 0;
+              return mb.compareTo(ma);
+            });
+
+            return Container(
+              color: const Color(0xFFE8EBF0),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Icon(Icons.local_police, size: constraints.maxHeight * 0.5, color: Colors.grey),
                     ),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.8,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(constraints.maxWidth * 0.03),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PENDING INCIDENT REPORTS',
+                          style: TextStyle(
+                            color: const Color(0xFF1E3A8A),
+                            fontSize: constraints.maxWidth * 0.025 > 28 ? 28 : constraints.maxWidth * 0.025,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        itemCount: _pendingReports.length,
-                        itemBuilder: (context, index) => _buildReportCard(index),
-                      ),
+                        const SizedBox(height: 20),
+                        if (docs.isEmpty)
+                          const Expanded(
+                            child: Center(
+                              child: Text('No pending incident reports'),
+                            ),
+                          )
+                        else
+                          Expanded(
+                            child: GridView.builder(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 1.8,
+                              ),
+                              itemCount: sorted.length,
+                              itemBuilder: (context, index) {
+                                final data = sorted[index].data() as Map<String, dynamic>;
+                                final severity = (data['severity'] ?? 'low') as String;
+                                final color = _getSeverityColor(severity);
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        (data['type'] ?? 'INCIDENT').toString().toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'address: ${data['address'] ?? data['location'] ?? 'Unknown'}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      Text(
+                                        'time: ${_formatTimestamp(data['timestamp'] ?? data['time'])}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -365,41 +480,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildReportCard(int index) {
-    final report = _pendingReports[index];
-    final isHovered = _hoveredIncident == index;
-    final severityColor = _getSeverityColor(report['severity']);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIncident = index),
-      onExit: (_) => setState(() => _hoveredIncident = null),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: isHovered ? (Matrix4.identity()..scale(1.1)) : Matrix4.identity(),
-        transformAlignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: severityColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isHovered
-              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))]
-              : [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(report['type'].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('address: ${report['address']}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-              Text('time: ${report['time']}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _formatTimestamp(dynamic value) {
+    if (value is Timestamp) {
+      final d = value.toDate().toLocal();
+      final s = d.toString();
+      return s.length >= 16 ? s.substring(0, 16) : s;
+    }
+    if (value is String) {
+      return value;
+    }
+    return '';
   }
+  // _buildReportCard removed - pending reports now use live Firestore data above.
 
   Widget _buildSolvedCasesView() {
     return Container(
@@ -586,34 +678,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCitizenQueriesView() {
-    return Container(
-      color: const Color(0xFFE8EBF0),
-      child: Stack(
-        children: [
-          Center(
-            child: Opacity(
-              opacity: 0.1,
-              child: Icon(Icons.local_police, size: 300, color: Colors.grey),
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'CITIZEN QUERIES & REQUESTS',
-                  style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+    return StreamBuilder<QuerySnapshot>(
+      stream: PoliceFirebaseService.getCitizenQueries(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error loading queries'));
+        }
+        final docs = snapshot.data?.docs ?? [];
+
+        return Container(
+          color: const Color(0xFFE8EBF0),
+          child: Stack(
+            children: [
+              const Center(
+                child: Opacity(
+                  opacity: 0.1,
+                  child: Icon(Icons.local_police, size: 300, color: Colors.grey),
                 ),
-                const SizedBox(height: 8),
-                Text('Reviews and change requests from citizens', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                const SizedBox(height: 30),
-                ..._citizenQueries.map((query) => _buildQueryCard(query)),
-              ],
-            ),
+              ),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CITIZEN QUERIES & REQUESTS',
+                      style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Reviews and change requests from citizens',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    const SizedBox(height: 30),
+                    if (docs.isEmpty)
+                      const Text('No queries yet.')
+                    else
+                      ...docs.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _buildQueryCard(data);
+                      }),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
