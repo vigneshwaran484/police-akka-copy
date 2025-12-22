@@ -28,20 +28,21 @@ class PoliceFirebaseService {
   }
 
   // Get Pending Incidents
+  // Note: Removed .where() to avoid composite index requirement
+  // Filter on client side instead
   static Stream<QuerySnapshot> getPendingIncidents() {
     return _firestore
         .collection('incidents')
-        .where('status', isNotEqualTo: 'resolved')
-        .orderBy('status')
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
   // Get Solved Cases
+  // Note: Removed .where() to avoid composite index requirement
+  // Filter on client side instead
   static Stream<QuerySnapshot> getSolvedCases() {
     return _firestore
         .collection('incidents')
-        .where('status', isEqualTo: 'resolved')
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
@@ -60,20 +61,21 @@ class PoliceFirebaseService {
   }
 
   // Get Active SOS Alerts
+  // Note: Removed .where() to avoid composite index requirement
+  // Filter on client side instead
   static Stream<QuerySnapshot> getSOSAlerts() {
     return _firestore
         .collection('sos_alerts')
-        .where('status', isNotEqualTo: 'resolved')
-        .orderBy('status')
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
   // Get Resolved SOS Alerts
-  static Stream<QuerySnapshot> getResolvedSOSAlerts() {
+  // Note: Removed .where() to avoid composite index requirement
+  // Filter on client side instead
+  static Stream<QuerySnapshot> getSolvedSOSAlerts() {
     return _firestore
         .collection('sos_alerts')
-        .where('status', isEqualTo: 'resolved')
         .snapshots();
   }
  
@@ -127,20 +129,11 @@ class PoliceFirebaseService {
     return _auth.currentUser;
   }
 
-  // Get All AI Chats
-  static Stream<QuerySnapshot> getAllAIChats() {
+  // Get AI Chat Logs (Flat collection)
+  static Stream<QuerySnapshot> getAIChatLogs() {
     return _firestore
-        .collection('ai_chats')
-        .snapshots();
-  }
-
-  // Get AI Chat Messages
-  static Stream<QuerySnapshot> getAIChatMessages(String userId) {
-    return _firestore
-        .collection('ai_chats')
-        .doc(userId)
-        .collection('messages')
-        .orderBy('timestamp', descending: false)
+        .collection('ai_chat_history')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 }

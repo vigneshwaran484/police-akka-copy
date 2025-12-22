@@ -63,10 +63,11 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Image.network(
-                    'https://upload.wikimedia.org/wikipedia/en/thumb/8/8b/Tamil_Nadu_Police_logo.png/200px-Tamil_Nadu_Police_logo.png',
-                    height: 100,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.local_police, size: 80, color: Color(0xFF1E3A8A)),
+                  child: Image.asset(
+                    'assets/images/tn_police_logo.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 30),

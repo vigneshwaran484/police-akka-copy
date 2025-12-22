@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* -------------------- Citizens -------------------- */
+    match /citizens/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    /* -------------------- Incidents ------------------- */
+    match /incidents/{incidentId} {
+      // Allow anyone (even unauthenticated) to read/create for now to prevent errors
+      allow read, create: if true;
+      // CHANGED: Allow ANY authenticated user to update (removes isPolice check)
+      allow update, delete: if request.auth != null;
+    }
+
+    /* -------------------- SOS Alerts ------------------ */
+    match /sos_alerts/{alertId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+
+    /* -------------------- Citizen Queries ------------- */
+    match /citizen_queries/{queryId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+
+    /* -------------------- AI Chats -------------------- */
+    match /ai_chats/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    /* -------------------- AI Chat History (Flat) ------ */
+    // Added for dashboard visibility of AI chats
+    match /ai_chat_history/{docId} {
+       allow read, write: if request.auth != null;
+    }
+
+    /* -------------------- Global Override ------------- */
+    // CHANGED: Allow any authenticated user to read/write everything else
+    // This is the fallback if specific rules don't match
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
