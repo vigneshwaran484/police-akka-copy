@@ -15,6 +15,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Citizen queries now come from Firestore
 
+  // Helper method to create watermark background
+  Widget _buildWatermark() {
+    return Positioned.fill(
+      child: Opacity(
+        opacity: 0.26,
+        child: Image.asset(
+          'assets/images/tn_police_watermark.png',
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -172,15 +185,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Container(
           color: const Color(0xFFE8EBF0),
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Center(
-                child: Opacity(
-                  opacity: 0.1,
-                  child: Icon(Icons.local_police, size: constraints.maxHeight * 0.5, color: Colors.grey),
-                ),
-              ),
+              _buildWatermark(),
               SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+                padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
                 child: isWide
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,9 +243,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return const Text('Error loading incidents');
+          return Text('Error loading incidents: ${snapshot.error}');
         }
         final docs = snapshot.data?.docs ?? [];
+        // Client-side filtering for pending status
+        final pendingDocs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['status'] == 'pending';
+        }).toList();
+        
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -245,7 +260,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            if (docs.isEmpty)
+            if (pendingDocs.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(30),
@@ -262,8 +277,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-            if (docs.isNotEmpty)
-              ...docs.take(3).map((doc) {
+            if (pendingDocs.isNotEmpty)
+              ...pendingDocs.take(3).map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 return _buildIncidentCard({
                   'id': doc.id,
@@ -291,10 +306,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return const Text('Error loading SOS alerts');
+          return Text('Error loading SOS alerts: ${snapshot.error}');
         }
         final docs = snapshot.data?.docs ?? [];
-        final sorted = List<QueryDocumentSnapshot>.from(docs);
+        // Client-side filtering for active status
+        final activeDocs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['status'] == 'active';
+        }).toList();
+        
+        final sorted = List<QueryDocumentSnapshot>.from(activeDocs);
         sorted.sort((a, b) {
           final da = a.data() as Map<String, dynamic>;
           final db = b.data() as Map<String, dynamic>;
@@ -336,7 +357,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                           onPressed: () async {
                             if (latestDoc != null) {
-                              await PoliceFirebaseService.resolveSOSAlert(latestDoc.id);
+                              try {
+                                await PoliceFirebaseService.resolveSOSAlert(latestDoc.id);
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error updating status: ${e.toString().contains("permission-denied") ? "Permission denied. Check Firestore Rules." : e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
                           },
                           child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
@@ -385,7 +415,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onPressed: () async {
                   final id = (incident['id'] ?? '').toString();
                   if (id.isEmpty) return;
-                  await PoliceFirebaseService.updateIncidentStatus(id, 'resolved');
+                  try {
+                    await PoliceFirebaseService.updateIncidentStatus(id, 'resolved');
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating status: ${e.toString().contains("permission-denied") ? "Permission denied. Check Firestore Rules." : e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
               ),
@@ -409,10 +448,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return const Center(child: Text('Error loading reports'));
+              return Center(child: Text('Error loading reports: ${snapshot.error}'));
             }
             final docs = snapshot.data?.docs ?? [];
-            final sorted = List<QueryDocumentSnapshot>.from(docs);
+            // Client-side filtering for pending status
+            final pendingDocs = docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['status'] == 'pending';
+            }).toList();
+            
+            final sorted = List<QueryDocumentSnapshot>.from(pendingDocs);
             sorted.sort((a, b) {
               final da = a.data() as Map<String, dynamic>;
               final db = b.data() as Map<String, dynamic>;
@@ -427,12 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: const Color(0xFFE8EBF0),
               child: Stack(
                 children: [
-                  Center(
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Icon(Icons.local_police, size: constraints.maxHeight * 0.5, color: Colors.grey),
-                    ),
-                  ),
+                  _buildWatermark(),
                   Padding(
                     padding: EdgeInsets.all(constraints.maxWidth * 0.03),
                     child: Column(
@@ -587,10 +627,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return const Center(child: Text('Error loading SOS alerts'));
+              return Center(child: Text('Error loading SOS alerts: ${snapshot.error}'));
             }
             final docs = snapshot.data?.docs ?? [];
-            final sorted = List<QueryDocumentSnapshot>.from(docs);
+            // Client-side filtering for active status
+            final activeDocs = docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['status'] == 'active';
+            }).toList();
+            
+            final sorted = List<QueryDocumentSnapshot>.from(activeDocs);
             sorted.sort((a, b) {
               final da = a.data() as Map<String, dynamic>;
               final db = b.data() as Map<String, dynamic>;
@@ -605,12 +651,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: const Color(0xFFE8EBF0),
               child: Stack(
                 children: [
-                  Center(
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Icon(Icons.sos, size: constraints.maxHeight * 0.5, color: Colors.grey),
-                    ),
-                  ),
+                  _buildWatermark(),
                   Padding(
                     padding: EdgeInsets.all(constraints.maxWidth * 0.03),
                     child: Column(
@@ -749,13 +790,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       color: const Color(0xFFE8EBF0),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          const Center(
-            child: Opacity(
-              opacity: 0.1,
-              child: Icon(Icons.local_police, size: 300, color: Colors.grey),
-            ),
-          ),
+          _buildWatermark(),
           SingleChildScrollView(
             padding: const EdgeInsets.all(40),
             child: Column(
@@ -773,10 +810,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
-                      return const Text('Error loading solved cases');
+                      return Text('Error loading solved cases: ${snapshot.error}');
                     }
                     final docs = snapshot.data?.docs ?? [];
-                    if (docs.isEmpty) {
+                    // Client-side filtering for resolved status
+                    final resolvedDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['status'] == 'resolved';
+                    }).toList();
+                    
+                    if (resolvedDocs.isEmpty) {
                       return Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(30),
@@ -795,7 +838,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       );
                     }
                     return Column(
-                      children: docs.asMap().entries.map((entry) {
+                      children: resolvedDocs.asMap().entries.map((entry) {
                         final index = entry.key;
                         final doc = entry.value;
                         final data = doc.data() as Map<String, dynamic>;
@@ -818,16 +861,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 20),
                 StreamBuilder<QuerySnapshot>(
-                  stream: PoliceFirebaseService.getResolvedSOSAlerts(),
+                  stream: PoliceFirebaseService.getSolvedSOSAlerts(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
-                      return const Text('Error loading resolved SOS');
+                      return Text('Error loading resolved SOS: ${snapshot.error}');
                     }
                     final docs = snapshot.data?.docs ?? [];
-                    if (docs.isEmpty) {
+                    // Client-side filtering for resolved status
+                    final resolvedDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['status'] == 'resolved';
+                    }).toList();
+                    
+                    if (resolvedDocs.isEmpty) {
                       return Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(30),
@@ -846,7 +895,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       );
                     }
                     return Column(
-                      children: docs.asMap().entries.map((entry) {
+                      children: resolvedDocs.asMap().entries.map((entry) {
                         final index = entry.key;
                         final doc = entry.value;
                         final data = doc.data() as Map<String, dynamic>;
@@ -982,13 +1031,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return Container(
               color: const Color(0xFFE8EBF0),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  const Center(
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Icon(Icons.local_police, size: 300, color: Colors.grey),
-                    ),
-                  ),
+                  _buildWatermark(),
                   SingleChildScrollView(
                     padding: const EdgeInsets.all(40),
                     child: Column(
@@ -1096,13 +1141,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Container(
           color: const Color(0xFFE8EBF0),
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              const Center(
-                child: Opacity(
-                  opacity: 0.1,
-                  child: Icon(Icons.local_police, size: 300, color: Colors.grey),
-                ),
-              ),
+              _buildWatermark(),
               SingleChildScrollView(
                 padding: const EdgeInsets.all(40),
                 child: Column(
@@ -1240,7 +1281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildAIChatbotsView() {
     return StreamBuilder<QuerySnapshot>(
-      stream: PoliceFirebaseService.getAllAIChats(),
+      stream: PoliceFirebaseService.getAIChatLogs(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -1248,18 +1289,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (snapshot.hasError) {
           return const Center(child: Text('Error loading AI chats'));
         }
+        
+        // Group messages by userId
         final docs = snapshot.data?.docs ?? [];
+        final Map<String, Map<String, dynamic>> userChats = {};
+
+        for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final userId = (data['userId'] ?? '').toString();
+            if (userId.isEmpty) continue;
+            
+            if (!userChats.containsKey(userId)) {
+                userChats[userId] = {
+                    'userId': userId,
+                    'userName': data['userName'] ?? 'Unknown User',
+                    'messages': <Map<String, dynamic>>[],
+                };
+            }
+            // Add message to list
+            (userChats[userId]!['messages'] as List<Map<String, dynamic>>).add(data);
+        }
+
+        final users = userChats.values.toList();
 
         return Container(
           color: const Color(0xFFE8EBF0),
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              const Center(
-                child: Opacity(
-                  opacity: 0.1,
-                  child: Icon(Icons.chat_bubble, size: 300, color: Colors.grey),
-                ),
-              ),
+              _buildWatermark(),
               SingleChildScrollView(
                 padding: const EdgeInsets.all(40),
                 child: Column(
@@ -1270,16 +1328,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    Text('Total conversations: ${docs.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    Text('Total conversations: ${users.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
                     const SizedBox(height: 30),
-                    if (docs.isEmpty)
+                    if (users.isEmpty)
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.all(40),
                           child: Text('No AI chat conversations yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
                         ),
                       ),
-                    if (docs.isNotEmpty)
+                    if (users.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -1287,11 +1345,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
-                          children: docs.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final userName = (data['userName'] ?? 'user').toString();
-                            final userId = doc.id;
-                            
+                          children: users.map((userChat) {
+                            final userName = userChat['userName'];
+                            final messages = userChat['messages'] as List<Map<String, dynamic>>;
+                            // Sort messages by timestamp ascending for the chat view
+                            messages.sort((a, b) {
+                                final ta = a['timestamp'] as Timestamp?;
+                                final tb = b['timestamp'] as Timestamp?;
+                                if (ta == null || tb == null) return 0;
+                                return ta.compareTo(tb); 
+                            });
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 16),
                               padding: const EdgeInsets.all(16),
@@ -1313,7 +1377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   ElevatedButton(
                                     onPressed: () {
-                                      _showChatDialog(context, userId, userName);
+                                      _showChatDialog(context, userName, messages);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1E3A8A),
@@ -1340,7 +1404,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showChatDialog(BuildContext context, String userId, String userName) {
+  void _showChatDialog(BuildContext context, String userName, List<Map<String, dynamic>> messages) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1366,25 +1430,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const Divider(),
               Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: PoliceFirebaseService.getAIChatMessages(userId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(child: Text('Error loading messages'));
-                    }
-                    final messages = snapshot.data?.docs ?? [];
-
-                    if (messages.isEmpty) {
-                      return const Center(child: Text('No messages yet'));
-                    }
-
-                    return ListView.builder(
+                child: messages.isEmpty 
+                    ? const Center(child: Text('No messages yet'))
+                    : ListView.builder(
                       itemCount: messages.length,
                       itemBuilder: (context, index) {
-                        final data = messages[index].data() as Map<String, dynamic>;
+                        final data = messages[index];
                         final isUser = data['sender'] == 'user';
                         final message = data['message'] ?? '';
 
@@ -1427,9 +1478,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
               ),
             ],
           ),

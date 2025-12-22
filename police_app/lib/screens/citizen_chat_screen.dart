@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 
 class CitizenChatScreen extends StatefulWidget {
@@ -19,20 +20,8 @@ class CitizenChatScreen extends StatefulWidget {
 
 class _CitizenChatScreenState extends State<CitizenChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<_ChatMessage> _messages = [];
   bool _isSending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _messages.add(
-      const _ChatMessage(
-        fromPolice: true,
-        text:
-            'Vanakkam! I am your virtual police guide.\n\nDescribe your problem and I will share it with the nearest police station.',
-      ),
-    );
-  }
+  final ScrollController _scrollController = ScrollController();
 
   String _generateReply(String userText) {
     final text = userText.toLowerCase();
@@ -95,27 +84,51 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
 
-    setState(() {
-      _isSending = true;
-      _messages.add(_ChatMessage(fromPolice: false, text: text));
-      _messageController.clear();
-    });
+    _messageController.clear();
+    setState(() => _isSending = true);
 
-    await FirebaseService.submitQuery(
-      userId: widget.phone,
-      name: widget.userName,
-      phone: widget.phone,
-      type: 'Query',
-      message: text,
-    );
+    try {
+      // Save User Message
+      await FirebaseService.saveAIChatMessage(
+        userId: widget.phone, // Using phone as unique ID
+        userName: widget.userName,
+        sender: 'user',
+        message: text,
+      );
 
-    setState(() {
-      _isSending = false;
-      _messages.add(_ChatMessage(
-        fromPolice: true,
-        text: _generateReply(text),
-      ));
-    });
+      // Simulate network delay for AI feel
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Generate and Save AI Reply
+      final reply = _generateReply(text);
+      await FirebaseService.saveAIChatMessage(
+        userId: widget.phone,
+        userName: widget.userName,
+        sender: 'ai',
+        message: reply,
+      );
+      
+      // Scroll to bottom
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 100,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+
+    } catch (e) {
+      print('Error sending message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send message. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
   }
 
   @override
@@ -128,29 +141,43 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Align(
-                  alignment:
-                      msg.fromPolice ? Alignment.centerLeft : Alignment.centerRight,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    decoration: BoxDecoration(
-                      color: msg.fromPolice
-                          ? const Color(0xFF1E3A8A)
-                          : const Color(0xFFDC2626),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      msg.text,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseService.getAIChatStream(widget.phone),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error loading chat'));
+                }
+                
+                final docs = snapshot.data?.docs ?? [];
+                
+                // If no messages, show welcome message locally
+                if (docs.isEmpty) {
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildMessageBubble(
+                        'Vanakkam! I am your virtual police guide.\n\nDescribe your problem and I will share it with the nearest police station.',
+                        true
+                      ),
+                    ],
+                  );
+                }
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    final isPolice = data['sender'] != 'user';
+                    return _buildMessageBubble(data['message'] ?? '', isPolice);
+                  },
                 );
               },
             ),
@@ -190,16 +217,25 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
       ),
     );
   }
+
+  Widget _buildMessageBubble(String text, bool isPolice) {
+    return Align(
+      alignment: isPolice ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: const BoxConstraints(maxWidth: 260),
+        decoration: BoxDecoration(
+          color: isPolice
+              ? const Color(0xFF1E3A8A)
+              : const Color(0xFFDC2626),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
 }
-
-class _ChatMessage {
-  final bool fromPolice;
-  final String text;
-
-  const _ChatMessage({
-    required this.fromPolice,
-    required this.text,
-  });
-}
-
-

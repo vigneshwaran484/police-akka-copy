@@ -223,32 +223,27 @@ class FirebaseService {
     required String sender,
     required String message,
   }) async {
-    await _firestore
-        .collection('ai_chats')
-        .doc(userId)
-        .collection('messages')
-        .add({
+    await _firestore.collection('ai_chat_history').add({
+      'userId': userId,
+      'userName': userName,
       'sender': sender,
       'message': message,
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
 
-  static Stream<QuerySnapshot> getAIChatHistory(String userId) {
+  static Stream<QuerySnapshot> getAIChatStream(String userId) {
     return _firestore
-        .collection('ai_chats')
-        .doc(userId)
-        .collection('messages')
-        .orderBy('timestamp', descending: false)
+        .collection('ai_chat_history')
+        .where('userId', isEqualTo: userId)
         .snapshots();
   }
 
   static Future<List<Map<String, dynamic>>> getRecentAIChatHistory(String userId) async {
     try {
       final snapshot = await _firestore
-          .collection('ai_chats')
-          .doc(userId)
-          .collection('messages')
+          .collection('ai_chat_history')
+          .where('userId', isEqualTo: userId)
           .orderBy('timestamp', descending: true)
           .limit(10)
           .get();
