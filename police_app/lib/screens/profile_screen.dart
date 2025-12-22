@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'edit_profile_screen.dart';
+import 'current_reports_screen.dart';
+import 'previous_reports_screen.dart';
 
 
 class ProfileScreen extends StatelessWidget {
@@ -59,23 +62,55 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Column(
                       children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(10),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditProfileScreen(
+                                  userId: phone,
+                                  name: name,
+                                  phone: phone,
+                                  aadhar: aadhar,
+                                  photo: null,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[400],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.person, size: 60, color: Colors.white),
                           ),
-                          child: const Icon(Icons.person, size: 60, color: Colors.white),
                         ),
                         const SizedBox(height: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E3A8A),
-                            borderRadius: BorderRadius.circular(5),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditProfileScreen(
+                                  userId: phone,
+                                  name: name,
+                                  phone: phone,
+                                  aadhar: aadhar,
+                                  photo: null,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E3A8A),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text('EDIT PROFILE', style: TextStyle(color: Colors.white, fontSize: 10)),
                           ),
-                          child: const Text('EDIT PROFILE', style: TextStyle(color: Colors.white, fontSize: 10)),
                         ),
                       ],
                     ),
@@ -100,7 +135,12 @@ class ProfileScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PreviousReportsScreen(userId: phone)),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
                     padding: const EdgeInsets.symmetric(vertical: 20),
@@ -118,7 +158,12 @@ class ProfileScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CurrentReportsScreen(userId: phone)),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A8A),
                     padding: const EdgeInsets.symmetric(vertical: 20),

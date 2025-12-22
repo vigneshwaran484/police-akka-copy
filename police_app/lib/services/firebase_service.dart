@@ -8,6 +8,14 @@ class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const bool storageUploadsDisabled = true;
 
+  static Future<void> _ensureSignedIn() async {
+    if (_auth.currentUser == null) {
+      try {
+        await _auth.signInAnonymously();
+      } catch (_) {}
+    }
+  }
+
   // Authentication
   static Future<User?> signInWithPhone(String verificationId, String smsCode) async {
     try {
@@ -49,11 +57,14 @@ class FirebaseService {
     required String name,
     required String phone,
     required String aadhar,
+    String? photo,
   }) async {
+    await _ensureSignedIn();
     await _firestore.collection('citizens').doc(userId).set({
       'name': name,
       'phone': phone,
       'aadhar': aadhar,
+      if (photo != null) 'photo': photo,
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -65,11 +76,7 @@ class FirebaseService {
     required String description,
     required String location,
   }) async {
-    if (_auth.currentUser == null) {
-      try {
-        await _auth.signInAnonymously();
-      } catch (_) {}
-    }
+    await _ensureSignedIn();
     final now = DateTime.now().toString().substring(0, 16);
     DocumentReference doc = await _firestore.collection('incidents').add({
       'userId': userId,
@@ -94,6 +101,7 @@ class FirebaseService {
     List<String> videoPaths = const [],
     List<String> audioPaths = const [],
   }) async {
+    await _ensureSignedIn();
     if (storageUploadsDisabled) {
       final images = imagePaths.map((p) {
         final parts = p.split(Platform.pathSeparator);
@@ -157,6 +165,7 @@ class FirebaseService {
     required String userId,
     required String location,
   }) async {
+    await _ensureSignedIn();
     await _firestore.collection('sos_alerts').add({
       'userId': userId,
       'location': location,
@@ -173,6 +182,7 @@ class FirebaseService {
     required String type,
     required String message,
   }) async {
+    await _ensureSignedIn();
     final now = DateTime.now().toString().substring(0, 16);
     await _firestore.collection('citizen_queries').add({
       'userId': userId,
@@ -191,7 +201,6 @@ class FirebaseService {
     return _firestore
         .collection('incidents')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -223,6 +232,7 @@ class FirebaseService {
     required String sender,
     required String message,
   }) async {
+    await _ensureSignedIn();
     await _firestore.collection('ai_chat_history').add({
       'userId': userId,
       'userName': userName,
@@ -236,6 +246,15 @@ class FirebaseService {
     return _firestore
         .collection('ai_chat_history')
         .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+  
+  static Stream<QuerySnapshot> getAIChatHistory(String userId) {
+    return _firestore
+        .collection('ai_chat_history')
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: false)
         .snapshots();
   }
 
