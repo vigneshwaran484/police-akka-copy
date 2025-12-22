@@ -31,7 +31,9 @@ class PoliceFirebaseService {
   static Stream<QuerySnapshot> getPendingIncidents() {
     return _firestore
         .collection('incidents')
-        .where('status', isEqualTo: 'pending')
+        .where('status', isNotEqualTo: 'resolved')
+        .orderBy('status')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -40,6 +42,7 @@ class PoliceFirebaseService {
     return _firestore
         .collection('incidents')
         .where('status', isEqualTo: 'resolved')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -60,9 +63,24 @@ class PoliceFirebaseService {
   static Stream<QuerySnapshot> getSOSAlerts() {
     return _firestore
         .collection('sos_alerts')
-        .where('status', isEqualTo: 'active')
+        .where('status', isNotEqualTo: 'resolved')
+        .orderBy('status')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
+
+  // Get Resolved SOS Alerts
+  static Stream<QuerySnapshot> getResolvedSOSAlerts() {
+    return _firestore
+        .collection('sos_alerts')
+        .where('status', isEqualTo: 'resolved')
+        .snapshots();
+  }
+ 
+   // Get All SOS Alerts
+   static Stream<QuerySnapshot> getAllSOSAlerts() {
+     return _firestore.collection('sos_alerts').snapshots();
+   }
 
   // Update Incident Status
   static Future<void> updateIncidentStatus(String incidentId, String status) async {
@@ -94,9 +112,36 @@ class PoliceFirebaseService {
     await _auth.signOut();
   }
 
+  // Check custom claim isPolice on current user
+  static Future<bool> hasPolicePrivileges() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    final idTokenResult = await user.getIdTokenResult(true);
+    final claims = idTokenResult.claims ?? {};
+    final v = claims['isPolice'];
+    return v == true;
+  }
+
   // Get Current User
   static User? getCurrentUser() {
     return _auth.currentUser;
+  }
+
+  // Get All AI Chats
+  static Stream<QuerySnapshot> getAllAIChats() {
+    return _firestore
+        .collection('ai_chats')
+        .snapshots();
+  }
+
+  // Get AI Chat Messages
+  static Stream<QuerySnapshot> getAIChatMessages(String userId) {
+    return _firestore
+        .collection('ai_chats')
+        .doc(userId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
   }
 }
 

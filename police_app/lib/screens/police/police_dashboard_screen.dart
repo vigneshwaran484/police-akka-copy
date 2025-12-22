@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PoliceDashboardScreen extends StatefulWidget {
   final String officerName;
@@ -212,6 +213,9 @@ class _PoliceDashboardScreenState extends State<PoliceDashboardScreen> {
   }
 
   Widget _buildDashboardContent() {
+    final pendingIncidents = _incidents.where((i) => i['status'] == 'pending').toList();
+    final sosAlerts = _incidents.where((i) => i['priority'] == 'critical').toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -228,6 +232,374 @@ class _PoliceDashboardScreenState extends State<PoliceDashboardScreen> {
               _buildStatCard('Resolved', '${_incidents.where((i) => i['status'] == 'resolved').length}', Icons.check_circle, Colors.green),
             ],
           ),
+          const SizedBox(height: 30),
+          
+          // PENDING INCIDENT REPORTS and SOS sections side by side
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // PENDING INCIDENT REPORTS section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PENDING INCIDENT REPORTS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (pendingIncidents.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'No Pending Incident Reports',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ...pendingIncidents.take(3).map((incident) => _buildIncidentCard(incident)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 20),
+              
+              // SOS section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SOS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (sosAlerts.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'No active SOS alerts',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ...sosAlerts.take(3).map((incident) => _buildIncidentCard(incident)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // SOLVED CASES HISTORY and RESOLVED SOS ALERTS sections side by side
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // SOLVED CASES HISTORY section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SOLVED CASES HISTORY',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('incidents')
+                          .where('status', isEqualTo: 'resolved')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        
+                        if (snapshot.hasError) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Error loading solved cases',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'No Solved Cases',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        final resolvedIncidents = snapshot.data!.docs.take(3).toList();
+                        return Column(
+                          children: resolvedIncidents.map((doc) {
+                            final incident = doc.data() as Map<String, dynamic>;
+                            incident['id'] = doc.id;
+                            return _buildIncidentCard(incident);
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 20),
+              
+              // RESOLVED SOS ALERTS section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'RESOLVED SOS ALERTS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('sos_alerts')
+                          .where('status', isEqualTo: 'resolved')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        
+                        if (snapshot.hasError) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Error loading resolved SOS',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'No Resolved SOS Alerts',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        final resolvedSOS = snapshot.data!.docs.take(3).toList();
+                        return Column(
+                          children: resolvedSOS.map((doc) {
+                            final alert = doc.data() as Map<String, dynamic>;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              doc.id,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Type: SOS',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Text(
+                                          'RESOLVED',
+                                          style: TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          alert['location'] ?? 'No location',
+                                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (alert['timestamp'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Date: ${(alert['timestamp'] as Timestamp).toDate().toString().substring(0, 16)}',
+                                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (alert['userId'] != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Citizen: ${alert['userId']}',
+                                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
           const SizedBox(height: 30),
           const Text('Recent Incidents', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),

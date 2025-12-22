@@ -12,30 +12,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _sidebarExpanded = false;
   int _selectedIndex = 0;
-  int? _hoveredIncident;
-
-  // Static demo data (kept only for solved cases & citizen data)
-  final List<Map<String, dynamic>> _incidentsDemo = [
-    {'type': 'ACCIDENT', 'color': Colors.red},
-    {'type': 'Vandalism', 'color': Colors.orange},
-    {'type': 'LOST', 'color': Colors.green},
-  ];
-
-  final List<Map<String, dynamic>> _solvedCases = [
-    {'id': 'CASE-001', 'type': 'Theft', 'location': 'Anna Nagar', 'date': '15 Dec 2025', 'citizen': 'Rajesh Kumar', 'status': 'Recovered'},
-    {'id': 'CASE-002', 'type': 'Vandalism', 'location': 'T Nagar', 'date': '14 Dec 2025', 'citizen': 'Priya Sharma', 'status': 'Resolved'},
-    {'id': 'CASE-003', 'type': 'Lost Item', 'location': 'Adyar', 'date': '13 Dec 2025', 'citizen': 'Mohammed Ali', 'status': 'Found'},
-    {'id': 'CASE-004', 'type': 'Accident', 'location': 'Mount Road', 'date': '12 Dec 2025', 'citizen': 'Lakshmi Devi', 'status': 'Closed'},
-    {'id': 'CASE-005', 'type': 'Noise Complaint', 'location': 'Velachery', 'date': '11 Dec 2025', 'citizen': 'Suresh Babu', 'status': 'Resolved'},
-  ];
-
-  final List<Map<String, dynamic>> _citizenData = [
-    {'name': 'Rajesh Kumar', 'phone': '9876543210', 'aadhar': '1234-5678-9012', 'cases': 2, 'address': 'Anna Nagar, Chennai'},
-    {'name': 'Priya Sharma', 'phone': '9876543211', 'aadhar': '2345-6789-0123', 'cases': 1, 'address': 'T Nagar, Chennai'},
-    {'name': 'Mohammed Ali', 'phone': '9876543212', 'aadhar': '3456-7890-1234', 'cases': 3, 'address': 'Adyar, Chennai'},
-    {'name': 'Lakshmi Devi', 'phone': '9876543213', 'aadhar': '4567-8901-2345', 'cases': 1, 'address': 'Mount Road, Chennai'},
-    {'name': 'Suresh Babu', 'phone': '9876543214', 'aadhar': '5678-9012-3456', 'cases': 2, 'address': 'Velachery, Chennai'},
-  ];
 
   // Citizen queries now come from Firestore
 
@@ -68,11 +44,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: 60,
             height: 60,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.local_police, size: 40, color: Color(0xFF1E3A8A)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/tn_police_logo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           const Column(
@@ -87,7 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90A4),
+              color: const Color(0xFFDC2626),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text('location of\npolice station', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
@@ -116,9 +99,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 8),
               _buildSidebarItem(0, Icons.dashboard, 'Dashboard'),
               _buildSidebarItem(1, Icons.description, 'Reported Incidents'),
+              _buildSidebarItem(5, Icons.sos, 'Reported SOS'),
               _buildSidebarItem(2, Icons.check_circle_outline, 'Solved cases'),
               _buildSidebarItem(3, Icons.people_outline, 'Citizen data'),
               _buildSidebarItem(4, Icons.feedback_outlined, 'Citizen Queries'),
+              _buildSidebarItem(6, Icons.chat_bubble_outline, 'AI Chatbot Replies'),
             ],
           ),
         ),
@@ -170,6 +155,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _buildCitizenDataView();
       case 4:
         return _buildCitizenQueriesView();
+      case 5:
+        return _buildReportedSOSView();
+      case 6:
+        return _buildAIChatbotsView();
       default:
         return _buildMainDashboard();
     }
@@ -193,12 +182,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SingleChildScrollView(
                 padding: const EdgeInsets.all(40),
                 child: isWide
-                    ? Row(
+                    ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(flex: 2, child: _buildIncidentReportsSection(constraints)),
-                          const SizedBox(width: 60),
-                          Expanded(child: _buildSOSSection(constraints)),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 2, child: _buildIncidentReportsSection(constraints)),
+                              const SizedBox(width: 60),
+                              Expanded(child: _buildSOSSection(constraints)),
+                            ],
+                          ),
+                          // Temporarily commented out to fix Firestore streaming errors
+                          // const SizedBox(height: 60),
+                          // Row(
+                          //   crossAxisAlignment: CrossAxisAlignment.start,
+                          //   children: [
+                          //     Expanded(flex: 2, child: _buildSolvedCasesSection(constraints)),
+                          //     const SizedBox(width: 60),
+                          //     Expanded(child: _buildResolvedSOSSection(constraints)),
+                          //   ],
+                          // ),
                         ],
                       )
                     : Column(
@@ -207,6 +211,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _buildIncidentReportsSection(constraints),
                           const SizedBox(height: 30),
                           _buildSOSSection(constraints),
+                          // Temporarily commented out to fix Firestore streaming errors
+                          // const SizedBox(height: 60),
+                          // _buildSolvedCasesSection(constraints),
+                          // const SizedBox(height: 30),
+                          // _buildResolvedSOSSection(constraints),
                         ],
                       ),
               ),
@@ -219,7 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildIncidentReportsSection(BoxConstraints constraints) {
     return StreamBuilder<QuerySnapshot>(
-      stream: PoliceFirebaseService.getAllIncidents(),
+      stream: PoliceFirebaseService.getPendingIncidents(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -232,16 +241,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'INCIDENT REPORTS',
+              'PENDING INCIDENT REPORTS',
               style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             if (docs.isEmpty)
-              const Text('No incidents reported yet.')
-            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6B7280),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'No Pending Incident Reports',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            if (docs.isNotEmpty)
               ...docs.take(3).map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 return _buildIncidentCard({
+                  'id': doc.id,
+                  'status': data['status'],
                   'type': (data['type'] ?? 'INCIDENT').toString(),
                   'color': _getSeverityColor((data['severity'] ?? 'low') as String),
                   'description': (data['description'] ?? '').toString(),
@@ -278,7 +304,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final mb = tb is Timestamp ? tb.millisecondsSinceEpoch : 0;
           return mb.compareTo(ma);
         });
-        final latest = sorted.isNotEmpty ? sorted.first.data() as Map<String, dynamic> : null;
+        final latestDoc = sorted.isNotEmpty ? sorted.first : null;
+        final latest = latestDoc != null ? latestDoc.data() as Map<String, dynamic> : null;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(30),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B6B),
+                color: Colors.red,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: latest == null
@@ -304,6 +331,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text('time: ${_formatTimestamp(latest['timestamp'] ?? latest['time'])}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 8),
                         Text('person: ${latest['userId'] ?? 'Citizen'}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                          onPressed: () async {
+                            if (latestDoc != null) {
+                              await PoliceFirebaseService.resolveSOSAlert(latestDoc.id);
+                            }
+                          },
+                          child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
+                        ),
                       ],
                     ),
             ),
@@ -339,6 +376,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text('address: ${incident['address'] ?? incident['location'] ?? 'Unknown'}', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
           const SizedBox(height: 4),
           Text('time: ${_formatTimestamp(incident['timestamp'] ?? incident['time'])}', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+          const SizedBox(height: 12),
+          if ((incident['status'] ?? '') != 'resolved' && (incident['id'] ?? '') != '')
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                onPressed: () async {
+                  final id = (incident['id'] ?? '').toString();
+                  if (id.isEmpty) return;
+                  await PoliceFirebaseService.updateIncidentStatus(id, 'resolved');
+                },
+                child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
+              ),
+            ),
         ],
       ),
     );
@@ -401,15 +452,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Center(
                               child: Text('No pending incident reports'),
                             ),
-                          )
-                        else
+                          ),
+                        if (docs.isNotEmpty)
                           Expanded(
                             child: GridView.builder(
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
                                 crossAxisSpacing: 16,
                                 mainAxisSpacing: 16,
-                                childAspectRatio: 1.8,
+                                childAspectRatio: 1.5,
                               ),
                               itemCount: sorted.length,
                               itemBuilder: (context, index) {
@@ -430,7 +481,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       Text(
                                         (data['type'] ?? 'INCIDENT').toString().toUpperCase(),
@@ -448,6 +499,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       Text(
                                         'time: ${_formatTimestamp(data['timestamp'] ?? data['time'])}',
                                         style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.black54),
+                                        onPressed: () async {
+                                          final id = sorted[index].id;
+                                          try {
+                                            await PoliceFirebaseService.updateIncidentStatus(id, 'resolved');
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Incident marked resolved')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Failed to resolve: $e')),
+                                              );
+                                            }
+                                          }
+                                        },
+                                        child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
                                       ),
                                     ],
                                   ),
@@ -467,6 +540,152 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildReportedSOSView() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 3;
+        if (constraints.maxWidth < 800) crossAxisCount = 2;
+        if (constraints.maxWidth < 500) crossAxisCount = 1;
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: PoliceFirebaseService.getSOSAlerts(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text('Error loading SOS alerts'));
+            }
+            final docs = snapshot.data?.docs ?? [];
+            final sorted = List<QueryDocumentSnapshot>.from(docs);
+            sorted.sort((a, b) {
+              final da = a.data() as Map<String, dynamic>;
+              final db = b.data() as Map<String, dynamic>;
+              final ta = da['timestamp'];
+              final tb = db['timestamp'];
+              final ma = ta is Timestamp ? ta.millisecondsSinceEpoch : 0;
+              final mb = tb is Timestamp ? tb.millisecondsSinceEpoch : 0;
+              return mb.compareTo(ma);
+            });
+
+            return Container(
+              color: const Color(0xFFE8EBF0),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Icon(Icons.sos, size: constraints.maxHeight * 0.5, color: Colors.grey),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(constraints.maxWidth * 0.03),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'REPORTED SOS ALERTS',
+                          style: TextStyle(
+                            color: const Color(0xFF1E3A8A),
+                            fontSize: constraints.maxWidth * 0.025 > 28 ? 28 : constraints.maxWidth * 0.025,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (docs.isEmpty)
+                          const Expanded(
+                            child: Center(
+                              child: Text('No active SOS alerts'),
+                            ),
+                          ),
+                        if (docs.isNotEmpty)
+                          Expanded(
+                            child: GridView.builder(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 1.5,
+                              ),
+                              itemCount: sorted.length,
+                              itemBuilder: (context, index) {
+                                final data = sorted[index].data() as Map<String, dynamic>;
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'SOS',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'location: ${data['location'] ?? 'Unknown'}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      Text(
+                                        'time: ${_formatTimestamp(data['timestamp'] ?? data['time'])}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      Text(
+                                        'person: ${data['userId'] ?? 'Citizen'}',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.black54),
+                                        onPressed: () async {
+                                          final id = sorted[index].id;
+                                          try {
+                                            await PoliceFirebaseService.resolveSOSAlert(id);
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('SOS marked resolved')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Failed to resolve: $e')),
+                                              );
+                                            }
+                                          }
+                                        },
+                                        child: const Text('Mark Done', style: TextStyle(color: Colors.white)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   Color _getSeverityColor(String severity) {
     switch (severity) {
       case 'high':
@@ -513,10 +732,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   'SOLVED CASES HISTORY',
                   style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                Text('Total solved cases: ${_solvedCases.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                const SizedBox(height: 30),
-                ..._solvedCases.map((caseData) => _buildSolvedCaseCard(caseData)),
+                const SizedBox(height: 20),
+                StreamBuilder<QuerySnapshot>(
+                  stream: PoliceFirebaseService.getSolvedCases(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return const Text('Error loading solved cases');
+                    }
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'No Solved Cases Yet',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: docs.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final doc = entry.value;
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _buildSolvedCaseCard({
+                          'id': 'CASE-${(index + 1).toString().padLeft(3, '0')}',
+                          'type': (data['type'] ?? 'INCIDENT').toString(),
+                          'location': (data['address'] ?? data['location'] ?? 'Unknown').toString(),
+                          'date': _formatTimestamp(data['timestamp'] ?? data['time']),
+                          'citizen': (data['userName'] ?? data['name'] ?? 'Citizen').toString(),
+                          'status': 'Resolved',
+                        });
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  'RESOLVED SOS ALERTS',
+                  style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                StreamBuilder<QuerySnapshot>(
+                  stream: PoliceFirebaseService.getResolvedSOSAlerts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return const Text('Error loading resolved SOS');
+                    }
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'No Resolved SOS Alerts',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: docs.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final doc = entry.value;
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _buildSolvedCaseCard({
+                          'id': 'SOS-${(index + 1).toString().padLeft(3, '0')}',
+                          'type': 'SOS ALERT',
+                          'location': (data['location'] ?? 'Unknown').toString(),
+                          'date': _formatTimestamp(data['timestamp'] ?? data['time']),
+                          'citizen': (data['userName'] ?? data['name'] ?? 'Citizen').toString(),
+                          'status': 'Resolved',
+                        });
+                      }).toList(),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -579,34 +891,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCitizenDataView() {
-    return Container(
-      color: const Color(0xFFE8EBF0),
-      child: Stack(
-        children: [
-          const Center(
-            child: Opacity(
-              opacity: 0.1,
-              child: Icon(Icons.local_police, size: 300, color: Colors.grey),
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'CITIZEN DATA',
-                  style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text('Citizens with resolved cases: ${_citizenData.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                const SizedBox(height: 30),
-                ..._citizenData.map((citizen) => _buildCitizenCard(citizen)),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: PoliceFirebaseService.getAllIncidents(),
+      builder: (context, incSnapshot) {
+        if (incSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (incSnapshot.hasError) {
+          return const Center(child: Text('Error loading citizen data'));
+        }
+        final incDocs = incSnapshot.data?.docs ?? [];
+        return StreamBuilder<QuerySnapshot>(
+          stream: PoliceFirebaseService.getAllSOSAlerts(),
+          builder: (context, sosSnapshot) {
+            if (sosSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (sosSnapshot.hasError) {
+              return const Center(child: Text('Error loading citizen data'));
+            }
+            final sosDocs = sosSnapshot.data?.docs ?? [];
+            final Map<String, Map<String, dynamic>> reporters = {};
+            for (final doc in incDocs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final uid = (data['userId'] ?? '').toString();
+              if (uid.isEmpty) continue;
+              final name = (data['userName'] ?? data['name'] ?? uid).toString();
+              final entry = reporters.putIfAbsent(uid, () {
+                return {
+                  'name': name,
+                  'phone': uid,
+                  'aadhar': 'N/A',
+                  'address': (data['address'] ?? data['location'] ?? 'Unknown').toString(),
+                  'cases': 0,
+                };
+              });
+              entry['cases'] = (entry['cases'] as int) + 1;
+            }
+            for (final doc in sosDocs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final uid = (data['userId'] ?? '').toString();
+              if (uid.isEmpty) continue;
+              final name = (data['userName'] ?? data['name'] ?? uid).toString();
+              final entry = reporters.putIfAbsent(uid, () {
+                return {
+                  'name': name,
+                  'phone': uid,
+                  'aadhar': 'N/A',
+                  'address': (data['location'] ?? 'Unknown').toString(),
+                  'cases': 0,
+                };
+              });
+              entry['cases'] = (entry['cases'] as int) + 1;
+            }
+            final reporterList = reporters.values.toList()
+              ..sort((a, b) => (b['cases'] as int).compareTo(a['cases'] as int));
+            return Container(
+              color: const Color(0xFFE8EBF0),
+              child: Stack(
+                children: [
+                  const Center(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Icon(Icons.local_police, size: 300, color: Colors.grey),
+                    ),
+                  ),
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'CITIZEN DATA',
+                          style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Citizens who reported: ${reporterList.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                        const SizedBox(height: 30),
+                        ...reporterList.map((citizen) => _buildCitizenCard(citizen)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -829,5 +1200,208 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-}
 
+  // Removed unused _buildSolvedCasesSection
+
+  // Removed unused _buildResolvedSOSSection
+
+  Widget _buildAIChatbotsView() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: PoliceFirebaseService.getAllAIChats(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error loading AI chats'));
+        }
+        final docs = snapshot.data?.docs ?? [];
+
+        return Container(
+          color: const Color(0xFFE8EBF0),
+          child: Stack(
+            children: [
+              const Center(
+                child: Opacity(
+                  opacity: 0.1,
+                  child: Icon(Icons.chat_bubble, size: 300, color: Colors.grey),
+                ),
+              ),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'AI CHATBOT REPLY',
+                      style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Total conversations: ${docs.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    const SizedBox(height: 30),
+                    if (docs.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Text('No AI chat conversations yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        ),
+                      ),
+                    if (docs.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: docs.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final userName = (data['userName'] ?? 'user').toString();
+                            final userId = doc.id;
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      userName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      _showChatDialog(context, userId, userName);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E3A8A),
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    ),
+                                    child: const Text(
+                                      'view user chat and response',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showChatDialog(BuildContext context, String userId, String userName) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: 800,
+          height: 600,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Conversation with $userName',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: PoliceFirebaseService.getAIChatMessages(userId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Error loading messages'));
+                    }
+                    final messages = snapshot.data?.docs ?? [];
+
+                    if (messages.isEmpty) {
+                      return const Center(child: Text('No messages yet'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final data = messages[index].data() as Map<String, dynamic>;
+                        final isUser = data['sender'] == 'user';
+                        final message = data['message'] ?? '';
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            mainAxisAlignment: isUser
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            children: [
+                              if (!isUser)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 8),
+                                  child: Icon(Icons.support_agent, size: 24, color: Color(0xFF1E3A8A)),
+                                ),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isUser
+                                        ? const Color(0xFF1E3A8A)
+                                        : Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    message,
+                                    style: TextStyle(
+                                      color: isUser ? Colors.white : Colors.black87,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (isUser)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Icon(Icons.person, size: 24, color: Colors.grey),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

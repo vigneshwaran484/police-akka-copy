@@ -140,5 +140,49 @@ class FirebaseService {
   static User? getCurrentUser() {
     return _auth.currentUser;
   }
+
+  // AI Chat Methods
+  static Future<void> saveAIChatMessage({
+    required String userId,
+    required String userName,
+    required String sender,
+    required String message,
+  }) async {
+    await _firestore
+        .collection('ai_chats')
+        .doc(userId)
+        .collection('messages')
+        .add({
+      'sender': sender,
+      'message': message,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Stream<QuerySnapshot> getAIChatHistory(String userId) {
+    return _firestore
+        .collection('ai_chats')
+        .doc(userId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+
+  static Future<List<Map<String, dynamic>>> getRecentAIChatHistory(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('ai_chats')
+          .doc(userId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(10)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList().reversed.toList();
+    } catch (e) {
+      print('Error getting chat history: $e');
+      return [];
+    }
+  }
 }
 

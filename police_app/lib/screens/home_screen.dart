@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'report_incident_screen.dart';
 import 'guidance_screen.dart';
-<<<<<<< HEAD
-import 'citizen_chat_screen.dart';
+import 'ai_chatbot_screen.dart';
 import '../services/firebase_service.dart';
-=======
 import 'write_to_us_screen.dart';
->>>>>>> 883956e2b5f9c5ee424444c05740c5b46d91e7a0
 
 class HomeScreen extends StatelessWidget {
   final String userName;
@@ -163,20 +160,19 @@ class HomeScreen extends StatelessWidget {
                           border: Border.all(color: Colors.black),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_upward),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CitizenChatScreen(
-                                  userName: userName,
-                                  phone: phone,
-                                  aadhar: aadhar,
+                            icon: const Icon(Icons.arrow_upward),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AIChatbotScreen(
+                                    userName: userName,
+                                    phone: phone,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            },
+                          ),
                       ),
                     ],
                   ),

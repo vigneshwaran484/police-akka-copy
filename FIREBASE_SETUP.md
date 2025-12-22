@@ -105,9 +105,11 @@ The app will create these collections automatically:
 }
 ```
 
-## Security Rules (Add Later)
+## Security Rules (IMPORTANT - Must Update!)
 
-After testing, update Firestore security rules:
+**CRITICAL**: You need to update your Firestore security rules to allow the AI chatbot to work!
+
+Go to Firebase Console → Firestore Database → Rules and replace with:
 
 ```javascript
 rules_version = '2';
@@ -125,7 +127,26 @@ service cloud.firestore {
       allow update: if request.auth.token.isPolice == true;
     }
     
-    // Only police can read queries
+    // SOS Alerts
+    match /sos_alerts/{alert} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth.token.isPolice == true;
+    }
+    
+    // AI Chat - Citizens can write their chats, everyone can read
+    match /ai_chats/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+      
+      // Messages subcollection
+      match /messages/{message} {
+        allow read: if request.auth != null;
+        allow write: if request.auth.uid == userId;
+      }
+    }
+    
+    // Citizen queries
     match /citizen_queries/{query} {
       allow read: if request.auth.token.isPolice == true;
       allow create: if request.auth != null;
