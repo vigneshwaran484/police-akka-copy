@@ -500,6 +500,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         'time: ${_formatTimestamp(data['timestamp'] ?? data['time'])}',
                                         style: const TextStyle(color: Colors.white, fontSize: 12),
                                       ),
+                                      const SizedBox(height: 8),
+                                      Builder(builder: (context) {
+                                        final images = (data['images'] is List) ? List.from(data['images']) : const [];
+                                        final videos = (data['videos'] is List) ? List.from(data['videos']) : const [];
+                                        final audios = (data['audios'] is List) ? List.from(data['audios']) : const [];
+                                        if (images.isEmpty && videos.isEmpty && audios.isEmpty) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return Wrap(
+                                          spacing: 8,
+                                          runSpacing: 4,
+                                          children: [
+                                            if (images.isNotEmpty)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
+                                                child: Text('images: ${images.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                              ),
+                                            if (videos.isNotEmpty)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
+                                                child: Text('videos: ${videos.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                              ),
+                                            if (audios.isNotEmpty)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
+                                                child: Text('audios: ${audios.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                              ),
+                                          ],
+                                        );
+                                      }),
                                       const SizedBox(height: 12),
                                       ElevatedButton(
                                         style: ElevatedButton.styleFrom(backgroundColor: Colors.black54),

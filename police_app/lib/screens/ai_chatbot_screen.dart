@@ -130,7 +130,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseService.getAIChatStream(currentUserId),
+              stream: FirebaseService.getAIChatHistory(currentUserId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading chat'));

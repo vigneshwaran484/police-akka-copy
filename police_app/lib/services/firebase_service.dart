@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class FirebaseService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const bool storageUploadsDisabled = true;
 
   // Authentication
   static Future<User?> signInWithPhone(String verificationId, String smsCode) async {
@@ -62,6 +65,11 @@ class FirebaseService {
     required String description,
     required String location,
   }) async {
+    if (_auth.currentUser == null) {
+      try {
+        await _auth.signInAnonymously();
+      } catch (_) {}
+    }
     final now = DateTime.now().toString().substring(0, 16);
     DocumentReference doc = await _firestore.collection('incidents').add({
       'userId': userId,
@@ -73,8 +81,75 @@ class FirebaseService {
       'status': 'pending',
       'severity': _getSeverity(type),
       'timestamp': FieldValue.serverTimestamp(),
+      'images': [],
+      'videos': [],
+      'audios': [],
     });
     return doc.id;
+  }
+
+  static Future<void> uploadIncidentMedia({
+    required String incidentId,
+    List<String> imagePaths = const [],
+    List<String> videoPaths = const [],
+    List<String> audioPaths = const [],
+  }) async {
+    if (storageUploadsDisabled) {
+      final images = imagePaths.map((p) {
+        final parts = p.split(Platform.pathSeparator);
+        return parts.isNotEmpty ? parts.last : p;
+      }).toList();
+      final videos = videoPaths.map((p) {
+        final parts = p.split(Platform.pathSeparator);
+        return parts.isNotEmpty ? parts.last : p;
+      }).toList();
+      final audios = audioPaths.map((p) {
+        final parts = p.split(Platform.pathSeparator);
+        return parts.isNotEmpty ? parts.last : p;
+      }).toList();
+      await _firestore.collection('incidents').doc(incidentId).set({
+        if (images.isNotEmpty) 'images': images,
+        if (videos.isNotEmpty) 'videos': videos,
+        if (audios.isNotEmpty) 'audios': audios,
+        'hasMedia': images.isNotEmpty || videos.isNotEmpty || audios.isNotEmpty,
+        'mediaMode': 'filenames',
+      }, SetOptions(merge: true));
+      return;
+    }
+    final storage = FirebaseStorage.instance;
+    final images = <String>[];
+    final videos = <String>[];
+    final audios = <String>[];
+
+    Future<void> uploadList(List<String> paths, String folder, List<String> out) async {
+      final tasks = <Future<void>>[];
+      for (final p in paths) {
+        if (p.isEmpty) continue;
+        final file = File(p);
+        if (!file.existsSync()) continue;
+        tasks.add(() async {
+          final name = p.split(Platform.pathSeparator).isNotEmpty
+              ? p.split(Platform.pathSeparator).last
+              : 'file_${DateTime.now().millisecondsSinceEpoch}';
+          final ref = storage.ref().child('incidents/$incidentId/$folder/${DateTime.now().millisecondsSinceEpoch}_$name');
+          final uploadTask = await ref.putFile(file);
+          final url = await uploadTask.ref.getDownloadURL();
+          out.add(url);
+        }());
+      }
+      await Future.wait(tasks);
+    }
+
+    await uploadList(imagePaths, 'images', images);
+    await uploadList(videoPaths, 'videos', videos);
+    await uploadList(audioPaths, 'audios', audios);
+
+    await _firestore.collection('incidents').doc(incidentId).set({
+      if (images.isNotEmpty) 'images': images,
+      if (videos.isNotEmpty) 'videos': videos,
+      if (audios.isNotEmpty) 'audios': audios,
+      'hasMedia': images.isNotEmpty || videos.isNotEmpty || audios.isNotEmpty,
+    }, SetOptions(merge: true));
   }
 
   // Send SOS Alert
