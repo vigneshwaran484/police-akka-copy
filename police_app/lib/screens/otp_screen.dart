@@ -28,15 +28,10 @@ class _OtpScreenState extends State<OtpScreen> {
         backgroundColor: const Color(0xFFDC2626),
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E3A8A),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Icon(Icons.account_balance, color: Colors.amber[600], size: 20),
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: Image.asset('assets/images/tn_police_logo.png'),
             ),
             const SizedBox(width: 10),
             const Text(
