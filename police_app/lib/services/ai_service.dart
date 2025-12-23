@@ -5,11 +5,11 @@ import '../config/app_config.dart';
 class AIService {
   static const String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
   static const String _model = 'llama-3.1-8b-instant'; // Fast and efficient model
-
   static const String _systemPrompt = 
     'You are a helpful Virtual Police Guide for Tamil Nadu Police. '
     'Assist citizens with information about police services, filing reports, '
-    'legal procedures, safety tips, and guidance. Be professional, concise, and helpful.';
+    'legal procedures, safety tips, and guidance. Be professional, concise, and helpful. '
+    'When users ask about how to use the app, explain clearly using steps, reference feature names, and keep answers short.';
 
   // Send a message to Groq AI
   static Future<String> sendMessage(
@@ -21,9 +21,14 @@ class AIService {
         return 'Please configure the Groq API Key in app_config.dart';
       }
 
+      // Local handling for app usage/tutor questions
+      if (_isAppHelpQuery(userMessage)) {
+        return _buildAppHelpResponse(userMessage);
+      }
+
       // Prepare messages list with system prompt first
       final messages = [
-        {'role': 'system', 'content': _systemPrompt},
+        {'role': 'system', 'content': _systemPrompt + '\n\nApp Guide:\n' + AppConfig.appUsageGuide},
       ];
 
       // Add history
@@ -66,5 +71,47 @@ class AIService {
       print('❌ [AI ERROR] Exception: $e');
       return 'I apologize, but an unexpected error occurred. Please check your internet connection.';
     }
+  }
+
+  static bool _isAppHelpQuery(String text) {
+    final t = text.toLowerCase();
+    final keywords = [
+      'how to use',
+      'using this app',
+      'use this app',
+      'how do i use',
+      'help with app',
+      'guide',
+      'tutorial',
+      'how to report',
+      'how to send sos',
+      'how to ask',
+      'how to file',
+      'how to update profile',
+      'app features',
+    ];
+    return keywords.any((k) => t.contains(k));
+  }
+
+  static String _buildAppHelpResponse(String userMessage) {
+    // Tailor response based on intent
+    final t = userMessage.toLowerCase();
+    if (t.contains('report')) {
+      return 'To report an incident:\n1) Home → Report Incident\n2) Pick type and describe details\n3) Add location and media\n4) Submit to notify police';
+    }
+    if (t.contains('sos')) {
+      return 'To send SOS:\n1) Open Home → SOS\n2) Tap SOS to alert nearest station\n3) Your location is shared automatically';
+    }
+    if (t.contains('profile')) {
+      return 'To update profile:\n1) Home → Profile\n2) Edit name, phone, Aadhaar\n3) Save changes';
+    }
+    if (t.contains('rules') || t.contains('traffic')) {
+      return 'To read rules:\n1) Home → Guidance & Rules\n2) Browse traffic rules, penalties, and safety tips';
+    }
+    if (t.contains('query') || t.contains('ask')) {
+      return 'To ask a question:\n1) Home → My Queries or use the Chatbot\n2) Type your doubt and send\n3) Police will review and respond';
+    }
+    // General app usage response
+    return AppConfig.appUsageGuide.trim();
   }
 }

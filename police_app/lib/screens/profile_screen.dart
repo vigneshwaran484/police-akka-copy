@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
 import 'edit_profile_screen.dart';
 import '../widgets/watermark_base.dart';
 import 'incident_history_screen.dart';
 import 'sos_history_screen.dart';
 import 'my_queries_screen.dart';
-import 'citizen_chat_screen.dart';
 
 
 class ProfileScreen extends StatelessWidget {

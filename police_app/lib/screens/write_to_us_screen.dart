@@ -61,7 +61,7 @@ class _WriteToUsScreenState extends State<WriteToUsScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('${_selectedType} Submitted'),
+          title: Text('$_selectedType Submitted'),
           content: Text('Your ${_selectedType!.toLowerCase()} has been sent successfully to the TN Police Gov. We will get back to you soon.'),
           actions: [
             TextButton(
