@@ -107,9 +107,15 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
         ),
         title: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.local_police, color: Color(0xFF1E3A8A)),
+            CircleAvatar(
+              backgroundColor: const Color(0xFF1E3A8A), // Match the header color
+              radius: 20,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/tn_police_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Column(
