@@ -1242,7 +1242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     else
                       ...docs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
-                        return _buildQueryCard(data);
+                        return _buildQueryCard(doc.id, data);
                       }),
                   ],
                 ),
@@ -1254,8 +1254,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQueryCard(Map<String, dynamic> query) {
-    final isPending = query['status'] == 'pending';
+  Widget _buildQueryCard(String queryId, Map<String, dynamic> query) {
+    final status = query['status'] ?? 'pending';
+    final isPending = status == 'pending';
+    final isResponded = status == 'responded' || status == 'resolved';
     Color typeColor;
     IconData typeIcon;
     
@@ -1319,10 +1321,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isPending ? Colors.orange : Colors.green,
+                        color: isPending ? Colors.orange : (isResponded ? Colors.green : Colors.grey),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(isPending ? 'PENDING' : 'RESOLVED', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text(isPending ? 'PENDING' : (isResponded ? 'RESPONDED' : status.toString().toUpperCase()), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -1337,7 +1339,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (isPending) ...[
                       const Spacer(),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () => _showQueryResponseDialog(queryId, query),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -1347,8 +1349,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ],
                 ),
+                if (isResponded && query.containsKey('response')) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.reply, size: 16, color: Color(0xFF1E3A8A)),
+                            SizedBox(width: 6),
+                            Text('POLICE RESPONSE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(query['response'], style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQueryResponseDialog(String queryId, Map<String, dynamic> query) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Respond to ${query['citizen']}'),
+        content: SizedBox(
+          width: 450, // Force a fixed width to ensure text wraps instead of expanding the dialog
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Message: ${query['message']}',
+                style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+                softWrap: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Type your response here...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final response = controller.text.trim();
+              if (response.isEmpty) return;
+              
+              try {
+                await PoliceFirebaseService.respondToQuery(queryId, response);
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Response sent successfully')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error sending response: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A8A)),
+            child: const Text('Send Response', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

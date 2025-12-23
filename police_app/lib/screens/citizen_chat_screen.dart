@@ -218,8 +218,9 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMessageBubble(String text, bool isPolice) {
     return Align(
@@ -238,8 +239,6 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
           text,
           style: const TextStyle(color: Colors.white),
         ),
-      ),
-    );
       ),
     );
   }

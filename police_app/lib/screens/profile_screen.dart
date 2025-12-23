@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
 import 'edit_profile_screen.dart';
 import '../widgets/watermark_base.dart';
-import 'current_reports_screen.dart';
-import 'previous_reports_screen.dart';
+import 'incident_history_screen.dart';
+import 'sos_history_screen.dart';
+import 'my_queries_screen.dart';
+import 'citizen_chat_screen.dart';
 
 
 class ProfileScreen extends StatelessWidget {
@@ -24,29 +26,32 @@ class ProfileScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Top Header with Logo
-                _buildHeader(),
-                
-                const SizedBox(height: 30),
-                
-                // User Avatar and Name
-                _buildAvatarSection(context),
-                
-                const SizedBox(height: 30),
-                
-                // User Info Card
-                _buildInfoCard(),
-                
-                const SizedBox(height: 40),
-                
-                // Action Buttons
-                _buildActionButtons(context),
-                
-                const SizedBox(height: 30),
-              ],
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Top Header with Logo
+                  _buildHeader(),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // User Avatar and Name
+                  _buildAvatarSection(context),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // User Info Card
+                  _buildInfoCard(),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Action Buttons
+                  _buildActionButtons(context),
+                  
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
         ),
@@ -210,27 +215,40 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         children: [
           _buildActionButton(
-            label: 'CURRENT REPORTS',
-            subtitle: 'Check ongoing complaints',
-            icon: Icons.pending_actions,
+            label: 'MY QUERIES & FEEDBACK',
+            subtitle: 'View responses from police',
+            icon: Icons.forum,
             color: const Color(0xFF1E3A8A),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CurrentReportsScreen(userId: phone)),
+                MaterialPageRoute(builder: (_) => MyQueriesScreen(userId: phone)),
               );
             },
           ),
           const SizedBox(height: 20),
           _buildActionButton(
-            label: 'PREVIOUS REPORTS',
-            subtitle: 'View your history',
+            label: 'REPORTED INCIDENTS',
+            subtitle: 'Current and past incident reports',
+            icon: Icons.report,
+            color: const Color(0xFF1E3A8A).withOpacity(0.8),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => IncidentHistoryScreen(userId: phone)),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          _buildActionButton(
+            label: 'SOS ALERT HISTORY',
+            subtitle: 'Active and resolved panic alerts',
             icon: Icons.history,
             color: const Color(0xFFDC2626),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => PreviousReportsScreen(userId: phone)),
+                MaterialPageRoute(builder: (_) => SOSHistoryScreen(userId: phone)),
               );
             },
           ),

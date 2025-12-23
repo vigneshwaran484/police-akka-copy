@@ -96,7 +96,7 @@ class PoliceFirebaseService {
   static Future<void> respondToQuery(String queryId, String response) async {
     await _firestore.collection('citizen_queries').doc(queryId).update({
       'response': response,
-      'status': 'resolved',
+      'status': 'responded',
       'respondedAt': FieldValue.serverTimestamp(),
     });
   }

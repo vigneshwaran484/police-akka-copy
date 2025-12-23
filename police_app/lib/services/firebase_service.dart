@@ -196,10 +196,26 @@ class FirebaseService {
     });
   }
 
+  // Get Citizen Queries
+  static Stream<QuerySnapshot> getCitizenQueries(String userId) {
+    return _firestore
+        .collection('citizen_queries')
+        .where('userId', isEqualTo: userId)
+        .snapshots();
+  }
+
   // Get Citizen Incidents
   static Stream<QuerySnapshot> getCitizenIncidents(String userId) {
     return _firestore
         .collection('incidents')
+        .where('userId', isEqualTo: userId)
+        .snapshots();
+  }
+
+  // Get Citizen SOS Alerts
+  static Stream<QuerySnapshot> getCitizenSOSAlerts(String userId) {
+    return _firestore
+        .collection('sos_alerts')
         .where('userId', isEqualTo: userId)
         .snapshots();
   }
