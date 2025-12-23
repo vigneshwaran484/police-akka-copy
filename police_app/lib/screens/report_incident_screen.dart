@@ -169,24 +169,26 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-        title: const Text('Report Incident'),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-      ),
+          title: const Text('Report Incident'),
+          backgroundColor: const Color(0xFFDC2626), // Branded Red
+          foregroundColor: Colors.white,
+        ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Incident Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Select Incident Type', 
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
             const SizedBox(height: 15),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.9,
               ),
               itemCount: incidentTypes.length,
               itemBuilder: (context, index) {
@@ -196,16 +198,34 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                   onTap: () => setState(() => selectedType = type['name']),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isSelected ? type['color'] : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isSelected ? type['color'] : Colors.grey, width: 2),
+                      color: isSelected ? type['color'] : Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? type['color'] : Colors.grey[400]!, 
+                        width: 2.5
+                      ),
+                      boxShadow: [
+                        if (isSelected)
+                          BoxShadow(color: type['color'].withOpacity(0.3), blurRadius: 8, spreadRadius: 1)
+                      ],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(type['icon'], size: 30, color: isSelected ? Colors.white : type['color']),
-                        const SizedBox(height: 5),
-                        Text(type['name'], textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black)),
+                        Icon(type['icon'], size: 36, color: isSelected ? Colors.white : type['color']),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            type['name'], 
+                            textAlign: TextAlign.center, 
+                            style: TextStyle(
+                              fontSize: 11, 
+                              fontWeight: FontWeight.bold, 
+                              color: isSelected ? Colors.white : Colors.black87
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -213,25 +233,42 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
               },
             ),
             const SizedBox(height: 25),
-            const Text('Location', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const Text('Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+            const SizedBox(height: 10),
             TextField(
               controller: _locationController,
+              style: const TextStyle(fontSize: 16, color: Colors.black),
               decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.95),
                 hintText: 'Enter location or use current location',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                suffixIcon: IconButton(icon: const Icon(Icons.my_location), onPressed: () {}),
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.my_location, color: Color(0xFF1E3A8A)), 
+                  onPressed: () {}
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            const Text('Description', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+            const SizedBox(height: 10),
             TextField(
               controller: _descriptionController,
               maxLines: 4,
+              style: const TextStyle(fontSize: 16, color: Colors.black),
               decoration: InputDecoration(
-                hintText: 'Describe the incident...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.95),
+                hintText: 'Describe the incident in detail...',
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -240,12 +277,13 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _pickImages,
-                    icon: const Icon(Icons.camera_alt),
+                    icon: const Icon(Icons.camera_alt, color: Color(0xFF1E3A8A)),
                     label: const Text('Add Photo'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      minimumSize: const Size(0, 44),
-                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: const Color(0xFF1E3A8A),
+                      side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -253,12 +291,13 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _pickVideos,
-                    icon: const Icon(Icons.videocam),
+                    icon: const Icon(Icons.videocam, color: Color(0xFF1E3A8A)),
                     label: const Text('Add Video'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      minimumSize: const Size(0, 44),
-                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: const Color(0xFF1E3A8A),
+                      side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -266,12 +305,13 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _pickAudios,
-                    icon: const Icon(Icons.mic),
+                    icon: const Icon(Icons.mic, color: Color(0xFF1E3A8A)),
                     label: const Text('Add Audio'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      minimumSize: const Size(0, 44),
-                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: const Color(0xFF1E3A8A),
+                      side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -308,12 +348,21 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 onPressed: _submitting ? null : _submitReport,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFDC2626),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
                 ),
                 child: _submitting
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('SUBMIT REPORT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text(
+                        'SUBMIT REPORT', 
+                        style: TextStyle(
+                          color: Colors.white, 
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 18, 
+                          letterSpacing: 1
+                        ),
+                      ),
               ),
             ),
           ],
