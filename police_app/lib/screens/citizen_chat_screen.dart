@@ -152,6 +152,13 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
                 }
                 
                 final docs = snapshot.data?.docs ?? [];
+                docs.sort((a, b) {
+                  final ma = a.data() as Map<String, dynamic>;
+                  final mb = b.data() as Map<String, dynamic>;
+                  final ta = (ma['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final tb = (mb['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  return ta.compareTo(tb);
+                });
                 
                 // If no messages, show welcome message locally
                 if (docs.isEmpty) {

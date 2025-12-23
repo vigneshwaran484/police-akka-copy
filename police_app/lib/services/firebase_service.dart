@@ -264,7 +264,6 @@ class FirebaseService {
     return _firestore
         .collection('ai_chat_history')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: false)
         .snapshots();
   }
   
@@ -272,7 +271,6 @@ class FirebaseService {
     return _firestore
         .collection('ai_chat_history')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: false)
         .snapshots();
   }
 

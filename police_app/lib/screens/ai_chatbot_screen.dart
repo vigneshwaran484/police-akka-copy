@@ -109,7 +109,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
           children: [
             const CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.support_agent, color: Color(0xFF1E3A8A)),
+              child: Icon(Icons.local_police, color: Color(0xFF1E3A8A)),
             ),
             const SizedBox(width: 12),
             Column(
@@ -142,6 +142,13 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                 }
 
                 final docs = snapshot.data?.docs ?? [];
+                docs.sort((a, b) {
+                  final ma = a.data() as Map<String, dynamic>;
+                  final mb = b.data() as Map<String, dynamic>;
+                  final ta = (ma['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final tb = (mb['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  return ta.compareTo(tb);
+                });
 
                 if (docs.isEmpty) {
                   return Center(
