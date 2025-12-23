@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/ai_service.dart';
 import '../services/firebase_service.dart';
+import '../widgets/watermark_base.dart';
 
 class AIChatbotScreen extends StatefulWidget {
   final String userName;
@@ -94,9 +95,10 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.phone;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A8A),
         elevation: 0,
         leading: IconButton(
@@ -285,6 +287,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

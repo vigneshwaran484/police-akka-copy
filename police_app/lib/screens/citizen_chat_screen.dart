@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
+import '../widgets/watermark_base.dart';
 
 class CitizenChatScreen extends StatefulWidget {
   final String userName;
@@ -133,8 +134,10 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A8A),
         title: const Text('Virtual Police Guide', style: TextStyle(color: Colors.white)),
       ),
@@ -235,6 +238,8 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
           text,
           style: const TextStyle(color: Colors.white),
         ),
+      ),
+    );
       ),
     );
   }

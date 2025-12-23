@@ -14,12 +14,12 @@ class _WriteToUsScreenState extends State<WriteToUsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          image: const DecorationImage(
-            image: AssetImage('assets/images/tn_police_watermark.png'),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          image: DecorationImage(
+            image: AssetImage('assets/images/app_background.png'),
             fit: BoxFit.cover,
-            opacity: 0.1,
+            opacity: 0.85,
           ),
         ),
         child: SafeArea(

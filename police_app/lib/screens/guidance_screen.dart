@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import '../widgets/watermark_base.dart';
 
 class GuidanceScreen extends StatelessWidget {
   const GuidanceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
         title: const Text('Guidance and Rules'),
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
@@ -36,9 +39,9 @@ class GuidanceScreen extends StatelessWidget {
           ]),
         ],
       ),
+      ),
     );
   }
-
   Widget _buildSection(String title, List<String> items) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

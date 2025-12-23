@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 import 'edit_profile_screen.dart';
+import '../widgets/watermark_base.dart';
 import 'current_reports_screen.dart';
 import 'previous_reports_screen.dart';
 
@@ -18,37 +20,19 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          image: const DecorationImage(
-            image: AssetImage('assets/images/tn_police_watermark.png'),
-            fit: BoxFit.cover,
-            opacity: 0.1,
-          ),
-        ),
-        child: SafeArea(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               // Logo header
               Container(
                 padding: const EdgeInsets.all(20),
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E3A8A),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white, width: 3),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('POLICE', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                      Icon(Icons.account_balance, color: Colors.amber[600], size: 40),
-                    ],
-                  ),
+                child: SizedBox(
+                   width: 100,
+                   height: 100,
+                   child: Image.asset('assets/images/tn_police_logo.png'),
                 ),
               ),
               // Divider
@@ -182,6 +166,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
+
     );
   }
 }

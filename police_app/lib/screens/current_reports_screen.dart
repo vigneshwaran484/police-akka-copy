@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
+import '../widgets/watermark_base.dart';
 
 class CurrentReportsScreen extends StatelessWidget {
   final String userId;
   const CurrentReportsScreen({super.key, required this.userId});
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
         title: const Text('Current Reports'),
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
@@ -61,6 +64,7 @@ class CurrentReportsScreen extends StatelessWidget {
             ),
           );
         },
+      ),
       ),
     );
   }

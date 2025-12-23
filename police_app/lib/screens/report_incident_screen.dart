@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
+import '../widgets/watermark_base.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 
@@ -164,8 +165,10 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WatermarkBase(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
         title: const Text('Report Incident'),
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
@@ -315,6 +318,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
