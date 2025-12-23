@@ -65,36 +65,56 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildNavButton('WRITE TO US', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const WriteToUsScreen()));
-                    }),
-                    _buildNavButton('GUIDANCE\nAND RULES', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const GuidanceScreen()));
-                    }),
-                    _buildNavButton('REPORT\nINCIDENT', () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ReportIncidentScreen(
-                            userName: userName,
-                            phone: phone,
-                            aadhar: aadhar,
-                          ),
-                        ),
-                      );
-                    }),
-                    _buildNavButton('MY\nPROFILE', () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProfileScreen(
-                            name: userName,
-                            phone: phone,
-                            aadhar: aadhar,
-                          ),
-                        ),
-                      );
-                    }),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: _buildNavButton('WRITE TO US', () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const WriteToUsScreen()));
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: _buildNavButton('GUIDANCE\nAND RULES', () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const GuidanceScreen()));
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: _buildNavButton('REPORT\nINCIDENT', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ReportIncidentScreen(
+                                userName: userName,
+                                phone: phone,
+                                aadhar: aadhar,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: _buildNavButton('MY\nPROFILE', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProfileScreen(
+                                name: userName,
+                                phone: phone,
+                                aadhar: aadhar,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -166,7 +186,7 @@ class HomeScreen extends StatelessWidget {
                           border: Border.all(color: Colors.black),
                         ),
                         child: IconButton(
-                            icon: const Icon(Icons.arrow_upward),
+                            icon: const Icon(Icons.arrow_upward, size: 30),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -192,8 +212,8 @@ class HomeScreen extends StatelessWidget {
               GestureDetector(
                 onTap: () => _sendSOS(context),
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: 100,
+                  height: 100,
                   decoration: const BoxDecoration(
                     color: Color(0xFFDC2626),
                     shape: BoxShape.circle,
@@ -202,7 +222,7 @@ class HomeScreen extends StatelessWidget {
                   child: const Center(
                     child: Text(
                       'SOS',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 28),
                     ),
                   ),
                 ),
@@ -237,15 +257,18 @@ class HomeScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 60, // Fixed height to make buttons even
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1E3A8A),
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );

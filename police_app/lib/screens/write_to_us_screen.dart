@@ -29,73 +29,69 @@ class _WriteToUsScreenState extends State<WriteToUsScreen> {
                 // Logo header
                 Container(
                   padding: const EdgeInsets.all(20),
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E3A8A),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white, width: 3),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('POLICE', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                        Icon(Icons.account_balance, color: Colors.amber[600], size: 40),
-                      ],
-                    ),
+                  child: SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: Image.asset('assets/images/tn_police_logo.png'),
                   ),
                 ),
                 // Divider
                 Container(height: 3, color: const Color(0xFF8B0000), margin: const EdgeInsets.symmetric(horizontal: 20)),
                 const SizedBox(height: 30),
                 // Title
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
-                    'you can write your suggestions and queries here',
+                    'You can write your suggestions and queries here',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.w600, 
+                      color: Colors.grey[800],
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 40),
-                // Tamil Nadu Police emblem
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey, width: 2),
+                const SizedBox(height: 20),
+                // Subtitle
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Text(
+                    'Help us improve our app by posting your reviews and suggestions',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.w500, 
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                  child: const Icon(Icons.shield, size: 80, color: Colors.grey),
                 ),
                 const SizedBox(height: 30),
-                // Subtitle
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'help us improve our app by posting your reviews and suggestions',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                // Text input field
+                // Text input field (Chatbox)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.grey, width: 2),
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(color: const Color(0xFF1E3A8A).withOpacity(0.2), width: 1.5),
                     ),
                     child: TextField(
                       controller: _queryController,
-                      maxLines: 6,
+                      maxLines: 5,
+                      style: const TextStyle(fontSize: 16),
                       decoration: const InputDecoration(
-                        hintText: 'type here..',
+                        hintText: 'Type your message here...',
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(15),
+                        contentPadding: EdgeInsets.all(20),
                         hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ),

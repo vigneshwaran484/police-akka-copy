@@ -21,15 +21,13 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              // Police Logo
+              // Police Logo (Main)
               Container(
-                width: 120,
-                height: 120,
+                width: 150,
+                height: 150,
                 padding: const EdgeInsets.all(10),
                 child: Image.asset('assets/images/tn_police_logo.png'),
               ),
-              const Spacer(),
-              // Removed center emblem area as requested
               const Spacer(),
               // Login buttons
               Padding(
@@ -46,15 +44,15 @@ class SplashScreen extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDC2626),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: const Text(
                         'LOGIN AS\nCITIZEN',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ),
                     ElevatedButton(
@@ -66,26 +64,26 @@ class SplashScreen extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A8A),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: const Text(
                         'NEW USER\nREGISTER',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               // Title
               const Text(
                 'TNPOLICE GOV',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E3A8A),
                 ),
@@ -93,11 +91,11 @@ class SplashScreen extends StatelessWidget {
               Text(
                 'TAMIL NADU POLICE',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 20,
                   color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 20),
               const SizedBox(height: 40),
             ],
           ),
