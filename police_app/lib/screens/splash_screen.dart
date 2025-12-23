@@ -23,9 +23,8 @@ class SplashScreen extends StatelessWidget {
               const SizedBox(height: 20),
               // Police Logo (Main)
               Container(
-<<<<<<< HEAD
-                width: 120,
-                height: 120,
+                width: 150,
+                height: 150,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -48,12 +47,6 @@ class SplashScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-=======
-                width: 150,
-                height: 150,
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('assets/images/tn_police_logo.png'),
->>>>>>> 5302dc93def78cd2c6911338e70cb6269451a9ca
               ),
               const Spacer(),
               // Login buttons

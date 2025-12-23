@@ -69,7 +69,15 @@ class HomeScreen extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         child: _buildNavButton('WRITE TO US', () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const WriteToUsScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WriteToUsScreen(
+                                userName: userName,
+                                phone: phone,
+                              ),
+                            ),
+                          );
                         }),
                       ),
                     ),

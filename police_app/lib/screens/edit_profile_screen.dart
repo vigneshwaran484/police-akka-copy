@@ -76,34 +76,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Transform.scale(
-                      scale: 1.05,
-                      child: Image.asset('assets/images/tn_police_logo.png', fit: BoxFit.cover),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text('TN Police Gov', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E3A8A))),
-              ],
             Center(
               child: Column(
                 children: [
