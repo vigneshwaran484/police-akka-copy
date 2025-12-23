@@ -207,9 +207,11 @@ class FirebaseService {
   static String _getSeverity(String type) {
     if (type.toLowerCase().contains('accident') || 
         type.toLowerCase().contains('assault') ||
+        type.toLowerCase().contains('harassment') ||
         type.toLowerCase().contains('theft')) {
       return 'high';
-    } else if (type.toLowerCase().contains('vandalism')) {
+    } else if (type.toLowerCase().contains('vandalism') ||
+        type.toLowerCase().contains('theft'))  {
       return 'medium';
     }
     return 'low';

@@ -58,16 +58,29 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
                   ),
-                  child: Image.asset(
-                    'assets/images/tn_police_logo.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Transform.scale(
+                      scale: 1.05,
+                      child: Image.asset(
+                        'assets/images/tn_police_logo.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 30),

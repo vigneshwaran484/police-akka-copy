@@ -25,8 +25,28 @@ class SplashScreen extends StatelessWidget {
               Container(
                 width: 120,
                 height: 120,
-                padding: const EdgeInsets.all(10),
-                child: Image.asset('assets/images/tn_police_logo.png'),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Transform.scale(
+                    scale: 1.05,
+                    child: Image.asset(
+                      'assets/images/tn_police_logo.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
               ),
               const Spacer(),
               // Removed center emblem area as requested

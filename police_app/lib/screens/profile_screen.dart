@@ -28,11 +28,29 @@ class ProfileScreen extends StatelessWidget {
             children: [
               // Logo header
               Container(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                   width: 100,
-                   height: 100,
-                   child: Image.asset('assets/images/tn_police_logo.png'),
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Transform.scale(
+                    scale: 1.05,
+                    child: Image.asset(
+                      'assets/images/tn_police_logo.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
               // Divider

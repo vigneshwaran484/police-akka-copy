@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,6 +13,49 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _sidebarExpanded = false;
   int _selectedIndex = 0;
+  String _stationLocation = 'location of\npolice station';
+
+  void _showLocationEditDialog() {
+    final controller = TextEditingController(text: _stationLocation.replaceAll('\n', ' '));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E3A8A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Set Station Location', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Enter location...',
+            hintStyle: TextStyle(color: Colors.white54),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber, width: 2)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _stationLocation = controller.text.trim();
+                // Add newline if it's long or just keep it simple
+                if (_stationLocation.length > 15 && !_stationLocation.contains('\n')) {
+                   // Optional: intelligently split or just let it wrap
+                }
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            child: const Text('Save', style: TextStyle(color: Color(0xFF1E3A8A))),
+          ),
+        ],
+      ),
+    );
+  }
 
   // Citizen queries now come from Firestore
 
@@ -57,16 +101,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: 60,
             height: 60,
-            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/tn_police_logo.png',
-                fit: BoxFit.contain,
+              borderRadius: BorderRadius.circular(10),
+              child: Transform.scale(
+                scale: 1.05, // Slightly zoom to hide any edge artifacts
+                child: Image.asset(
+                  'assets/images/tn_police_logo.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
@@ -80,13 +134,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDC2626),
-              borderRadius: BorderRadius.circular(8),
+          GestureDetector(
+            onTap: _showLocationEditDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                _stationLocation,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+              ),
             ),
-            child: const Text('location of\npolice station', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const PoliceLoginScreen()),
+                (route) => false,
+              );
+            },
+            icon: const Icon(Icons.logout, color: Colors.white, size: 28),
+            tooltip: 'Logout',
           ),
         ],
       ),
