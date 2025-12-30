@@ -4,9 +4,42 @@ import 'package:intl/intl.dart';
 import '../services/firebase_service.dart';
 import '../widgets/watermark_base.dart';
 
-class SOSHistoryScreen extends StatelessWidget {
+class SOSHistoryScreen extends StatefulWidget {
   final String userId;
   const SOSHistoryScreen({super.key, required this.userId});
+
+  @override
+  State<SOSHistoryScreen> createState() => _SOSHistoryScreenState();
+}
+
+class _SOSHistoryScreenState extends State<SOSHistoryScreen> {
+  DateTime? _selectedDate;
+
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFDC2626), // Branded Red for SOS
+              onPrimary: Colors.white,
+              onSurface: Color(0xFFDC2626),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +52,19 @@ class SOSHistoryScreen extends StatelessWidget {
             title: const Text('SOS Alert History'),
             backgroundColor: const Color(0xFFDC2626),
             foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: Icon(_selectedDate != null ? Icons.filter_alt : Icons.filter_alt_off),
+                onPressed: _pickDate,
+                tooltip: 'Filter by Date',
+              ),
+              if (_selectedDate != null)
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () => setState(() => _selectedDate = null),
+                  tooltip: 'Clear Filter',
+                ),
+            ],
             bottom: const TabBar(
               indicatorColor: Colors.white,
               labelColor: Colors.white,
@@ -29,10 +75,37 @@ class SOSHistoryScreen extends StatelessWidget {
               ],
             ),
           ),
-          body: TabBarView(
+          body: Column(
             children: [
-              _buildSOSList(context, 'active'),
-              _buildSOSList(context, 'resolved'),
+              if (_selectedDate != null)
+                Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.filter_list, size: 16, color: Color(0xFFDC2626)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Filtering by: ${_selectedDate.toString().split(' ')[0]}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedDate = null),
+                        child: const Text('Clear', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildSOSList(context, 'active'),
+                    _buildSOSList(context, 'resolved'),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -42,7 +115,7 @@ class SOSHistoryScreen extends StatelessWidget {
 
   Widget _buildSOSList(BuildContext context, String statusFilter) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenSOSAlerts(userId),
+      stream: FirebaseService.getCitizenSOSAlerts(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -54,6 +127,18 @@ class SOSHistoryScreen extends StatelessWidget {
         final docs = snapshot.data?.docs ?? [];
         final items = docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
+          
+          if (_selectedDate != null) {
+            final timestamp = data['timestamp'];
+            if (timestamp is Timestamp) {
+              final date = timestamp.toDate();
+              final isSameDay = date.year == _selectedDate!.year && 
+                                date.month == _selectedDate!.month && 
+                                date.day == _selectedDate!.day;
+              if (!isSameDay) return false;
+            }
+          }
+
           return (data['status'] ?? 'active') == statusFilter;
         }).toList();
 
@@ -69,7 +154,9 @@ class SOSHistoryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  statusFilter == 'active' ? 'No active SOS alerts' : 'No previous SOS alerts',
+                  statusFilter == 'active' 
+                    ? (_selectedDate != null ? 'No active SOS on this date' : 'No active SOS alerts') 
+                    : (_selectedDate != null ? 'No resolved SOS on this date' : 'No previous SOS alerts'),
                   style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],

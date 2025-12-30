@@ -8,13 +8,6 @@ class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const bool storageUploadsDisabled = true;
 
-  static Future<void> _ensureSignedIn() async {
-    if (_auth.currentUser == null) {
-      try {
-        await _auth.signInAnonymously();
-      } catch (_) {}
-    }
-  }
 
   // Authentication
   static Future<User?> signInWithPhone(String verificationId, String smsCode) async {
@@ -51,16 +44,81 @@ class FirebaseService {
     );
   }
 
+  // Check if username exists
+  static Future<bool> checkUsernameExists(String username) async {
+    try {
+      final doc = await _firestore.collection('citizens').doc(username).get();
+      return doc.exists;
+    } catch (e) {
+      print('Error checking username: $e');
+      return false;
+    }
+  }
+
+  // Get User by Aadhar
+  static Future<Map<String, dynamic>?> getUserByAadhar(String aadhar) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('citizens')
+          .where('aadhar', isEqualTo: aadhar)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.data();
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching user by aadhar: $e');
+      return null;
+    }
+  }
+
+  // Get User by Phone
+  static Future<Map<String, dynamic>?> getUserByPhone(String phone) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('citizens')
+          .where('phone', isEqualTo: phone)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.data();
+      }
+      
+      // Try with/without +91 just in case
+      String altPhone = phone.startsWith('+91') 
+          ? phone.substring(3) 
+          : '+91$phone';
+          
+      final altQuery = await _firestore
+          .collection('citizens')
+          .where('phone', isEqualTo: altPhone)
+          .limit(1)
+          .get();
+          
+      if (altQuery.docs.isNotEmpty) {
+        return altQuery.docs.first.data();
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error fetching user by phone: $e');
+      return null;
+    }
+  }
+
   // Create/Update Citizen Profile
   static Future<void> saveCitizenProfile({
-    required String userId,
+    required String username,
     required String name,
     required String phone,
     required String aadhar,
     String? photo,
   }) async {
-    await _ensureSignedIn();
-    await _firestore.collection('citizens').doc(userId).set({
+    await _firestore.collection('citizens').doc(username).set({
+      'username': username,
       'name': name,
       'phone': phone,
       'aadhar': aadhar,
@@ -72,14 +130,15 @@ class FirebaseService {
   // Report Incident
   static Future<String> reportIncident({
     required String userId,
+    required String userName,
     required String type,
     required String description,
     required String location,
   }) async {
-    await _ensureSignedIn();
     final now = DateTime.now().toString().substring(0, 16);
     DocumentReference doc = await _firestore.collection('incidents').add({
       'userId': userId,
+      'userName': userName,
       'type': type,
       'description': description,
       'location': location,
@@ -101,7 +160,6 @@ class FirebaseService {
     List<String> videoPaths = const [],
     List<String> audioPaths = const [],
   }) async {
-    await _ensureSignedIn();
     if (storageUploadsDisabled) {
       final images = imagePaths.map((p) {
         final parts = p.split(Platform.pathSeparator);
@@ -163,11 +221,12 @@ class FirebaseService {
   // Send SOS Alert
   static Future<void> sendSOS({
     required String userId,
+    String? userName,
     required String location,
   }) async {
-    await _ensureSignedIn();
     await _firestore.collection('sos_alerts').add({
       'userId': userId,
+      'userName': userName ?? 'Unknown',
       'location': location,
       'timestamp': FieldValue.serverTimestamp(),
       'status': 'active',
@@ -182,7 +241,6 @@ class FirebaseService {
     required String type,
     required String message,
   }) async {
-    await _ensureSignedIn();
     final now = DateTime.now().toString().substring(0, 16);
     await _firestore.collection('citizen_queries').add({
       'userId': userId,
@@ -250,7 +308,6 @@ class FirebaseService {
     required String sender,
     required String message,
   }) async {
-    await _ensureSignedIn();
     await _firestore.collection('ai_chat_history').add({
       'userId': userId,
       'userName': userName,

@@ -4,13 +4,13 @@ import '../services/firebase_service.dart';
 
 class WriteToUsScreen extends StatefulWidget {
   final String userName;
-  final String phone;
+  final String userId;
   final String? initialType; // Optional pre-selected type
 
   const WriteToUsScreen({
     super.key,
     required this.userName,
-    required this.phone,
+    required this.userId,
     this.initialType,
   });
 
@@ -49,9 +49,9 @@ class _WriteToUsScreenState extends State<WriteToUsScreen> {
 
     try {
       await FirebaseService.submitQuery(
-        userId: widget.phone,
+        userId: widget.userId,
         name: widget.userName,
-        phone: widget.phone,
+        phone: widget.userId,
         type: _selectedType!,
         message: message,
       );

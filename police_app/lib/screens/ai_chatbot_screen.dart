@@ -7,12 +7,12 @@ import '../widgets/watermark_base.dart';
 
 class AIChatbotScreen extends StatefulWidget {
   final String userName;
-  final String phone;
+  final String userId;
 
   const AIChatbotScreen({
     super.key,
     required this.userName,
-    required this.phone,
+    required this.userId,
   });
 
   @override
@@ -34,7 +34,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
     if (message.isEmpty || _isThinking) return;
 
     _messageController.clear();
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.phone;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.userId;
 
     // Get history for context
     List<Map<String, dynamic>> history = [];
@@ -93,7 +93,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.phone;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.userId;
 
     return WatermarkBase(
       child: Scaffold(
@@ -153,7 +153,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                   final mb = b.data() as Map<String, dynamic>;
                   final ta = (ma['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
                   final tb = (mb['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-                  return ta.compareTo(tb);
+                  return tb.compareTo(ta); // Newest first
                 });
 
                 if (docs.isEmpty) {
@@ -176,14 +176,19 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                   );
                 }
 
+                // Prepare list items: [Thinking (if true), Newest Message, ..., Oldest]
+                final itemCount = docs.length + (_isThinking ? 1 : 0);
+
                 return ListView.builder(
                   controller: _scrollController,
+                  reverse: true, // Scroll from bottom
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: docs.length + (_isThinking ? 1 : 0),
+                  itemCount: itemCount,
                   itemBuilder: (context, index) {
-                    if (index == docs.length) {
-                      // Thinking indicator
-                      return Align(
+                    // Logic for reverse list
+                    // If thinking, it should be at index 0 (bottom)
+                    if (_isThinking && index == 0) {
+                       return Align(
                         alignment: Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -216,7 +221,10 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                       );
                     }
 
-                    final data = docs[index].data() as Map<String, dynamic>;
+                    // Mapping actual data index
+                    // If thinking, data index is index - 1
+                    final dataIndex = _isThinking ? index - 1 : index;
+                    final data = docs[dataIndex].data() as Map<String, dynamic>;
                     final isUser = data['sender'] == 'user';
                     final message = data['message'] ?? '';
 

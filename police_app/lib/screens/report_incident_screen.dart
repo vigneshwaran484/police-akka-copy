@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
 import '../widgets/watermark_base.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:async';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class ReportIncidentScreen extends StatefulWidget {
   final String userName;
-  final String phone;
+  final String userId;
   final String aadhar;
 
   const ReportIncidentScreen({
     super.key,
     required this.userName,
-    required this.phone,
+    required this.userId,
     required this.aadhar,
   });
 
@@ -74,6 +77,80 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     }
   }
 
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> _fetchCurrentLocation() async {
+    setState(() => _submitting = true); 
+    
+    // Show specific loading dialog for location
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+            SizedBox(height: 16),
+            Text('Fetching location...', style: TextStyle(color: Colors.white, decoration: TextDecoration.none, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      Position position = await _determinePosition();
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        if (placemarks.isNotEmpty) {
+           Placemark place = placemarks[0];
+           String address = '${place.street}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
+           // Remove leading commas if street/subLocality is empty
+           address = address.replaceAll(RegExp(r'^, +'), '').replaceAll(RegExp(r', ,'), ',');
+           _locationController.text = address;
+        } else {
+           _locationController.text = '${position.latitude}, ${position.longitude}';
+        }
+      } catch (e) {
+        _locationController.text = '${position.latitude}, ${position.longitude}';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching location: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        Navigator.pop(context); // Close dialog
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
   Future<void> _submitReport() async {
     if (selectedType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +168,8 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
 
     try {
       final incidentId = await FirebaseService.reportIncident(
-        userId: widget.phone,
+        userId: widget.userId,
+        userName: widget.userName,
         type: selectedType!,
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
@@ -249,7 +327,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.my_location, color: Color(0xFF1E3A8A)), 
-                  onPressed: () {}
+                  onPressed: _fetchCurrentLocation,
                 ),
               ),
             ),

@@ -3,9 +3,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 import '../widgets/watermark_base.dart';
 
-class MyQueriesScreen extends StatelessWidget {
+class MyQueriesScreen extends StatefulWidget {
   final String userId;
   const MyQueriesScreen({super.key, required this.userId});
+
+  @override
+  State<MyQueriesScreen> createState() => _MyQueriesScreenState();
+}
+
+class _MyQueriesScreenState extends State<MyQueriesScreen> {
+  DateTime? _selectedDate;
+
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E3A8A),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1E3A8A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +51,19 @@ class MyQueriesScreen extends StatelessWidget {
             title: const Text('My Queries & Feedback'),
             backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: Icon(_selectedDate != null ? Icons.filter_alt : Icons.filter_alt_off),
+                onPressed: _pickDate,
+                tooltip: 'Filter by Date',
+              ),
+              if (_selectedDate != null)
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () => setState(() => _selectedDate = null),
+                  tooltip: 'Clear Filter',
+                ),
+            ],
             bottom: const TabBar(
               indicatorColor: Colors.white,
               labelColor: Colors.white,
@@ -28,10 +74,37 @@ class MyQueriesScreen extends StatelessWidget {
               ],
             ),
           ),
-          body: TabBarView(
+          body: Column(
             children: [
-              _buildQueryList(context, false), // Not responded (Pending)
-              _buildQueryList(context, true),  // Responded
+              if (_selectedDate != null)
+                Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.filter_list, size: 16, color: Color(0xFF1E3A8A)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Filtering by: ${_selectedDate.toString().split(' ')[0]}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedDate = null),
+                        child: const Text('Clear', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildQueryList(context, false), // Not responded (Pending)
+                    _buildQueryList(context, true),  // Responded
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -41,7 +114,7 @@ class MyQueriesScreen extends StatelessWidget {
 
   Widget _buildQueryList(BuildContext context, bool showResponded) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenQueries(userId),
+      stream: FirebaseService.getCitizenQueries(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -55,6 +128,27 @@ class MyQueriesScreen extends StatelessWidget {
           final data = doc.data() as Map<String, dynamic>;
           final status = data['status'] ?? 'pending';
           final isRes = status == 'responded' || status == 'resolved';
+          
+          if (_selectedDate != null) {
+            final timestamp = data['timestamp'];
+            if (timestamp is Timestamp) {
+              final date = timestamp.toDate();
+              final isSameDay = date.year == _selectedDate!.year && 
+                                date.month == _selectedDate!.month && 
+                                date.day == _selectedDate!.day;
+              if (!isSameDay) return false;
+            } else {
+               // Try text date if timestamp missing
+               try {
+                 final dateStr = data['date']; // "YYYY-MM-DD HH:MM"
+                 if (dateStr != null && dateStr is String) {
+                   final ymd = dateStr.split(' ')[0];
+                   if (ymd != _selectedDate.toString().split(' ')[0]) return false;
+                 }
+               } catch(_) {}
+            }
+          }
+
           return showResponded ? isRes : !isRes;
         }).toList();
 
@@ -70,7 +164,9 @@ class MyQueriesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  showResponded ? 'No responded queries yet.' : 'No pending queries.',
+                  showResponded 
+                    ? (_selectedDate != null ? 'No responded queries on date' : 'No responded queries yet.') 
+                    : (_selectedDate != null ? 'No pending queries on date' : 'No pending queries.'),
                   style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],

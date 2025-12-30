@@ -3,9 +3,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 import '../widgets/watermark_base.dart';
 
-class IncidentHistoryScreen extends StatelessWidget {
+class IncidentHistoryScreen extends StatefulWidget {
   final String userId;
   const IncidentHistoryScreen({super.key, required this.userId});
+
+  @override
+  State<IncidentHistoryScreen> createState() => _IncidentHistoryScreenState();
+}
+
+class _IncidentHistoryScreenState extends State<IncidentHistoryScreen> {
+  DateTime? _selectedDate;
+
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E3A8A),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1E3A8A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +51,19 @@ class IncidentHistoryScreen extends StatelessWidget {
             title: const Text('Reported Incidents'),
             backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: Icon(_selectedDate != null ? Icons.filter_alt : Icons.filter_alt_off),
+                onPressed: _pickDate,
+                tooltip: 'Filter by Date',
+              ),
+              if (_selectedDate != null)
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () => setState(() => _selectedDate = null),
+                  tooltip: 'Clear Filter',
+                ),
+            ],
             bottom: const TabBar(
               indicatorColor: Colors.white,
               labelColor: Colors.white,
@@ -28,10 +74,37 @@ class IncidentHistoryScreen extends StatelessWidget {
               ],
             ),
           ),
-          body: TabBarView(
+          body: Column(
             children: [
-              _buildIncidentList(context, true), // Current
-              _buildIncidentList(context, false), // Past
+              if (_selectedDate != null)
+                Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.filter_list, size: 16, color: Color(0xFF1E3A8A)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Filtering by: ${_selectedDate.toString().split(' ')[0]}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedDate = null),
+                        child: const Text('Clear', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildIncidentList(context, true), // Current
+                    _buildIncidentList(context, false), // Past
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -41,7 +114,7 @@ class IncidentHistoryScreen extends StatelessWidget {
 
   Widget _buildIncidentList(BuildContext context, bool isCurrent) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenIncidents(userId),
+      stream: FirebaseService.getCitizenIncidents(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -52,8 +125,38 @@ class IncidentHistoryScreen extends StatelessWidget {
         
         final docs = snapshot.data?.docs ?? [];
         final items = docs.where((doc) {
-          final status = (doc.data() as Map<String, dynamic>)['status'] ?? 'pending';
+          final data = doc.data() as Map<String, dynamic>;
+          final status = data['status'] ?? 'pending';
           final isResolved = status == 'resolved' || status == 'closed';
+          
+          if (_selectedDate != null) {
+            final timestamp = data['timestamp'];
+            if (timestamp is Timestamp) {
+              final date = timestamp.toDate();
+              final isSameDay = date.year == _selectedDate!.year && 
+                                date.month == _selectedDate!.month && 
+                                date.day == _selectedDate!.day;
+              if (!isSameDay) return false;
+            } else {
+              // Try to parse string time if timestamp not available
+              try {
+                final timeStr = data['time'] as String?;
+                if (timeStr != null) {
+                   // "YYYY-MM-DD HH:MM"
+                   final parts = timeStr.split(' ')[0].split('-');
+                   if (parts.length == 3) {
+                     final y = int.parse(parts[0]);
+                     final m = int.parse(parts[1]);
+                     final d = int.parse(parts[2]);
+                     if (y != _selectedDate!.year || m != _selectedDate!.month || d != _selectedDate!.day) {
+                       return false;
+                     }
+                   }
+                }
+              } catch (_) {}
+            }
+          }
+
           return isCurrent ? !isResolved : isResolved;
         }).toList();
 
@@ -69,7 +172,7 @@ class IncidentHistoryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isCurrent ? 'No current reports' : 'No past reports',
+                  isCurrent ? 'No current reports found' : 'No past reports found',
                   style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],

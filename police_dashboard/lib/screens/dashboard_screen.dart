@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/firebase_service.dart';
 import 'login_screen.dart';
 
@@ -14,50 +18,357 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _sidebarExpanded = false;
   int _selectedIndex = 0;
   String _stationLocation = 'location of\npolice station';
+  
+  // Filter states
+  String _filterName = '';
+  String _filterLocation = '';
+  String _filterType = '';
+  DateTime? _filterDate;
+  
+  List<String> _locationSuggestions = [];
+  
+  // Controllers for on-demand filtering
+  final TextEditingController _nameFilterController = TextEditingController();
+  final TextEditingController _locationFilterController = TextEditingController();
+  final TextEditingController _typeFilterController = TextEditingController();
 
-  void _showLocationEditDialog() {
-    final controller = TextEditingController(text: _stationLocation.replaceAll('\n', ' '));
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E3A8A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text('Set Station Location', style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'Enter location...',
-            hintStyle: TextStyle(color: Colors.white54),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber, width: 2)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _stationLocation = controller.text.trim();
-                // Add newline if it's long or just keep it simple
-                if (_stationLocation.length > 15 && !_stationLocation.contains('\n')) {
-                   // Optional: intelligently split or just let it wrap
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocationSuggestions();
+    _fetchCurrentLocation(); // Auto-fetch on startup
+  }
+  
+  Future<void> _fetchLocationSuggestions() async {
+    final Set<String> locations = {};
+    try {
+      // Fetch from multiple sources to populate suggestions
+      final pendingStruct = await PoliceFirebaseService.getPendingIncidents().first;
+      for (var doc in pendingStruct.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final loc = (data['address'] ?? data['location'] ?? '').toString();
+        if (loc.isNotEmpty) locations.add(loc);
+      }
+      final solvedStruct = await PoliceFirebaseService.getSolvedCases().first;
+      for (var doc in solvedStruct.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final loc = (data['address'] ?? data['location'] ?? '').toString();
+        if (loc.isNotEmpty) locations.add(loc);
+      }
+      final sosStruct = await PoliceFirebaseService.getSOSAlerts().first;
+      for (var doc in sosStruct.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final loc = (data['location'] ?? '').toString();
+        if (loc.isNotEmpty) locations.add(loc);
+      }
+    } catch (e) {
+      debugPrint('Error fetching locations: $e');
+    }
+    if (mounted) {
+      setState(() {
+        _locationSuggestions = locations.toList()..sort();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameFilterController.dispose();
+    _locationFilterController.dispose();
+    _typeFilterController.dispose();
+    super.dispose();
+  }
+  
+  void _applyFilters() {
+    setState(() {
+      _filterName = _nameFilterController.text.trim();
+      _filterLocation = _locationFilterController.text.trim();
+      _filterType = _typeFilterController.text.trim();
+    });
+  }
+
+  Future<void> _fetchCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Silent fail as per user request for "auto"
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      
+      if (permission == LocationPermission.deniedForever) return;
+
+      // Get current position
+      debugPrint('Fetching position...');
+      final position = await Geolocator.getCurrentPosition();
+      debugPrint('Position: ${position.latitude}, ${position.longitude}');
+      
+      String? address;
+      try {
+        // Reverse geocode
+        debugPrint('Attempting reverse geocoding...');
+        final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        if (placemarks.isNotEmpty) {
+          final p = placemarks.first;
+          address = [
+            p.subLocality,
+            p.locality, 
+            p.administrativeArea
+          ].where((e) => e != null && e.isNotEmpty).join(', ');
+        }
+      } catch (e) {
+        debugPrint('Reverse geocoding failed: $e');
+        
+        // Fallback: Try OpenStreetMap Nominatim API
+        try {
+          debugPrint('Attempting Nominatim fallback...');
+          final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}&zoom=18&addressdetails=1');
+          final response = await http.get(url, headers: {'User-Agent': 'PoliceDashboard/1.0'});
+          
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            final displayName = data['display_name'];
+            if (displayName != null) {
+              // Extract a shorter address if possible, or use display_name
+              final addr = data['address'];
+              if (addr != null) {
+                // Try to construct a detailed address similar to native geocoder
+                final parts = <String>[];
+                
+                if (addr['house_number'] != null) parts.add(addr['house_number']);
+                if (addr['road'] != null) parts.add(addr['road']);
+                
+                final area = addr['suburb'] ?? addr['neighbourhood'] ?? addr['residential'] ?? addr['village'];
+                if (area != null) parts.add(area);
+                
+                final city = addr['city'] ?? addr['town'] ?? addr['city_district'] ?? addr['county'];
+                if (city != null) parts.add(city);
+                
+                if (addr['postcode'] != null) parts.add(addr['postcode']);
+                
+                // Only add state if we have very little info
+                if (parts.length < 2 && addr['state'] != null) {
+                  parts.add(addr['state']);
                 }
-              });
-              Navigator.pop(context);
+
+                address = parts.join(', ');
+              } 
+              if (address == null || address.isEmpty) {
+                 address = displayName; // Fallback to full string
+              }
+            }
+          }
+        } catch (nominatimError) {
+           debugPrint('Nominatim fallback failed: $nominatimError');
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _stationLocation = (address != null && address.isNotEmpty) 
+              ? address 
+              : 'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+    }
+  }
+
+  // No manual dialog needed as per request
+
+
+  // Citizen queries now come from Firestore
+
+  Widget _buildFilterBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.filter_list, color: Color(0xFF1E3A8A)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: _nameFilterController,
+              decoration: const InputDecoration(
+                hintText: 'Filter by Name (Press Enter)',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              onSubmitted: (_) => _applyFilters(),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: RawAutocomplete<String>(
+              textEditingController: _locationFilterController,
+              focusNode: FocusNode(),
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) {
+                  return const Iterable<String>.empty();
+                }
+                return _locationSuggestions.where((String option) {
+                  return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                });
+              },
+              onSelected: (String selection) {
+                _applyFilters();
+              },
+              fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                return TextField(
+                  controller: fieldTextEditingController,
+                  focusNode: fieldFocusNode,
+                  decoration: const InputDecoration(
+                    hintText: 'Filter by Location',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    suffixIcon: Icon(Icons.arrow_drop_down),
+                  ),
+                  onSubmitted: (String value) {
+                    _applyFilters();
+                  },
+                );
+              },
+              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: SizedBox(
+                        width: 200,
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final String option = options.elementAt(index);
+                            return InkWell(
+                              onTap: () {
+                                onSelected(option);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(option),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: _typeFilterController,
+              decoration: const InputDecoration(
+                hintText: 'Filter by Type (Press Enter)',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              onSubmitted: (_) => _applyFilters(),
+            ),
+          ),
+          const SizedBox(width: 16),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.calendar_today, size: 16),
+            label: Text(_filterDate == null ? 'Select Date' : _filterDate.toString().split(' ')[0]),
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _filterDate ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                setState(() => _filterDate = picked);
+              }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-            child: const Text('Save', style: TextStyle(color: Color(0xFF1E3A8A))),
+          ),
+          if (_filterDate != null)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.red),
+              onPressed: () => setState(() => _filterDate = null),
+            ),
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            onPressed: _applyFilters,
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('Search'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Citizen queries now come from Firestore
+  bool _matchesFilter(Map<String, dynamic> data, {String? nameKey, String? locationKey}) {
+    final name = (data[nameKey ?? 'userName'] ?? data['name'] ?? data['citizen'] ?? data['userId'] ?? '').toString().toLowerCase();
+    final location = (data[locationKey ?? 'location'] ?? data['address'] ?? '').toString().toLowerCase();
+    final type = (data['type'] ?? 'INCIDENT').toString().toLowerCase();
+    
+    if (_filterName.isNotEmpty && !name.contains(_filterName.toLowerCase())) {
+      return false;
+    }
+    if (_filterLocation.isNotEmpty && !location.contains(_filterLocation.toLowerCase())) {
+      return false;
+    }
+    if (_filterType.isNotEmpty && !type.contains(_filterType.toLowerCase())) {
+      return false;
+    }
+    if (_filterDate != null) {
+      final timestamp = data['timestamp'];
+      if (timestamp is Timestamp) {
+        final date = timestamp.toDate();
+        if (date.year != _filterDate!.year || date.month != _filterDate!.month || date.day != _filterDate!.day) {
+          return false;
+        }
+      } else {
+        // Try text matching if timestamp missing
+        try {
+           final timeStr = (data['time'] ?? data['date'] ?? '').toString();
+           if (timeStr.isNotEmpty) {
+             final ymd = timeStr.split(' ')[0]; // Assumes YYYY-MM-DD or similar
+             final parts = ymd.split('-');
+             if (parts.length == 3) {
+               final y = int.tryParse(parts[0]);
+               final m = int.tryParse(parts[1]);
+               final d = int.tryParse(parts[2]);
+               if (y != null && m != null && d != null) {
+                  if (y != _filterDate!.year || m != _filterDate!.month || d != _filterDate!.day) {
+                    return false;
+                  }
+               }
+             }
+           }
+        } catch (_) {}
+      }
+    }
+    return true;
+  }
 
   // Helper method to create watermark background
   Widget _buildWatermark() {
@@ -135,7 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const Spacer(),
           GestureDetector(
-            onTap: _showLocationEditDialog,
+            onTap: _fetchCurrentLocation, // Retry on tap
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
@@ -386,16 +697,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Text('Error loading SOS alerts: ${snapshot.error}');
+          return const Center(child: Text('Error loading SOS alerts'));
         }
         final docs = snapshot.data?.docs ?? [];
-        // Client-side filtering for active status
-        final activeDocs = docs.where((doc) {
+        final items = docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          return data['status'] == 'active';
+          if ((data['status'] ?? 'active') != 'active') return false;
+          return _matchesFilter(data, nameKey: 'userName', locationKey: 'location');
         }).toList();
         
-        final sorted = List<QueryDocumentSnapshot>.from(activeDocs);
+        final sorted = List<QueryDocumentSnapshot>.from(items);
         sorted.sort((a, b) {
           final da = a.data() as Map<String, dynamic>;
           final db = b.data() as Map<String, dynamic>;
@@ -534,13 +845,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Client-side filtering for pending status
             final pendingDocs = docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              return data['status'] == 'pending';
+              if (data['status'] != 'pending') return false;
+              return _matchesFilter(data, nameKey: 'userName', locationKey: 'address');
             }).toList();
             
             final sorted = List<QueryDocumentSnapshot>.from(pendingDocs);
             sorted.sort((a, b) {
               final da = a.data() as Map<String, dynamic>;
               final db = b.data() as Map<String, dynamic>;
+              
+              // Primary Sort: Severity (High > Medium > Low)
+              final sa = (da['severity'] ?? 'low').toString().toLowerCase();
+              final sb = (db['severity'] ?? 'low').toString().toLowerCase();
+              
+              int getSeverityVal(String s) {
+                if (s == 'high') return 3;
+                if (s == 'medium') return 2;
+                return 1; // low
+              }
+              
+              final va = getSeverityVal(sa);
+              final vb = getSeverityVal(sb);
+              
+              if (va != vb) return vb.compareTo(va); // Descending (3 > 2 > 1)
+
+              // Secondary Sort: Timestamp (Newest first)
               final ta = da['timestamp'];
               final tb = db['timestamp'];
               final ma = ta is Timestamp ? ta.millisecondsSinceEpoch : 0;
@@ -710,10 +1039,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Center(child: Text('Error loading SOS alerts: ${snapshot.error}'));
             }
             final docs = snapshot.data?.docs ?? [];
-            // Client-side filtering for active status
             final activeDocs = docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              return data['status'] == 'active';
+              return (data['status'] ?? 'active') == 'active';
             }).toList();
             
             final sorted = List<QueryDocumentSnapshot>.from(activeDocs);
@@ -746,6 +1074,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
+
                         if (docs.isEmpty)
                           const Expanded(
                             child: Center(
@@ -878,6 +1207,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildFilterBar(),
+                const SizedBox(height: 20),
                 const Text(
                   'SOLVED CASES HISTORY',
                   style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
@@ -896,7 +1227,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Client-side filtering for resolved status
                     final resolvedDocs = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      return data['status'] == 'resolved';
+                      if (data['status'] != 'resolved') return false;
+                      return _matchesFilter(data, nameKey: 'userName', locationKey: 'address');
                     }).toList();
                     
                     if (resolvedDocs.isEmpty) {
@@ -927,7 +1259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'type': (data['type'] ?? 'INCIDENT').toString(),
                           'location': (data['address'] ?? data['location'] ?? 'Unknown').toString(),
                           'date': _formatTimestamp(data['timestamp'] ?? data['time']),
-                          'citizen': (data['userName'] ?? data['name'] ?? 'Citizen').toString(),
+                          'citizen': (data['name'] ?? data['userName'] ?? data['userId'] ?? 'Citizen').toString(),
                           'status': 'Resolved',
                         });
                       }).toList(),
@@ -953,7 +1285,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Client-side filtering for resolved status
                     final resolvedDocs = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      return data['status'] == 'resolved';
+                      if (data['status'] != 'resolved') return false;
+                      return _matchesFilter(data, nameKey: 'userName', locationKey: 'location');
                     }).toList();
                     
                     if (resolvedDocs.isEmpty) {
@@ -984,7 +1317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'type': 'SOS ALERT',
                           'location': (data['location'] ?? 'Unknown').toString(),
                           'date': _formatTimestamp(data['timestamp'] ?? data['time']),
-                          'citizen': (data['userName'] ?? data['name'] ?? 'Citizen').toString(),
+                          'citizen': (data['name'] ?? data['userName'] ?? data['userId'] ?? 'Citizen').toString(),
                           'status': 'Resolved',
                         });
                       }).toList(),
@@ -1078,7 +1411,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final data = doc.data() as Map<String, dynamic>;
               final uid = (data['userId'] ?? '').toString();
               if (uid.isEmpty) continue;
-              final name = (data['userName'] ?? data['name'] ?? uid).toString();
+              final name = (data['name'] ?? data['userName'] ?? uid).toString();
               final entry = reporters.putIfAbsent(uid, () {
                 return {
                   'name': name,
@@ -1094,7 +1427,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final data = doc.data() as Map<String, dynamic>;
               final uid = (data['userId'] ?? '').toString();
               if (uid.isEmpty) continue;
-              final name = (data['userName'] ?? data['name'] ?? uid).toString();
+              final name = (data['name'] ?? data['userName'] ?? uid).toString();
               final entry = reporters.putIfAbsent(uid, () {
                 return {
                   'name': name,
@@ -1106,7 +1439,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
               entry['cases'] = (entry['cases'] as int) + 1;
             }
-            final reporterList = reporters.values.toList()
+            
+            // Filter reporters list
+            final filteredReporters = reporters.values.where((citizen) {
+               return _matchesFilter(citizen, nameKey: 'name', locationKey: 'address');
+            }).toList();
+
+            final reporterList = filteredReporters
               ..sort((a, b) => (b['cases'] as int).compareTo(a['cases'] as int));
             return Container(
               color: const Color(0xFFE8EBF0),
@@ -1123,7 +1462,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'CITIZEN DATA',
                           style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 28, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 20),
+                        _buildFilterBar(),
+                        const SizedBox(height: 10),
                         Text('Citizens who reported: ${reporterList.length}', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
                         const SizedBox(height: 30),
                         ...reporterList.map((citizen) => _buildCitizenCard(citizen)),
@@ -1236,11 +1577,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 8),
                     Text('Reviews and change requests from citizens',
                         style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+                    _buildFilterBar(),
+                    const SizedBox(height: 10),
                     if (docs.isEmpty)
                       const Text('No queries yet.')
                     else
-                      ...docs.map((doc) {
+                      ...docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _matchesFilter(data, nameKey: 'citizen', locationKey: 'address'); // Queries might not have location
+                      }).map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         return _buildQueryCard(doc.id, data);
                       }),

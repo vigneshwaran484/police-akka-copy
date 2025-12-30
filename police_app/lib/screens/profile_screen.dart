@@ -7,12 +7,14 @@ import 'my_queries_screen.dart';
 
 
 class ProfileScreen extends StatelessWidget {
+  final String username;
   final String name;
   final String phone;
   final String aadhar;
 
   const ProfileScreen({
     super.key,
+    required this.username,
     required this.name,
     required this.phone,
     required this.aadhar,
@@ -220,7 +222,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => MyQueriesScreen(userId: phone)),
+                MaterialPageRoute(builder: (_) => MyQueriesScreen(userId: username)),
               );
             },
           ),
@@ -233,7 +235,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => IncidentHistoryScreen(userId: phone)),
+                MaterialPageRoute(builder: (_) => IncidentHistoryScreen(userId: username)),
               );
             },
           ),
@@ -246,7 +248,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => SOSHistoryScreen(userId: phone)),
+                MaterialPageRoute(builder: (_) => SOSHistoryScreen(userId: username)),
               );
             },
           ),

@@ -47,7 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _saving = true);
     try {
       await FirebaseService.saveCitizenProfile(
-        userId: widget.userId,
+        username: widget.userId,
         name: widget.name,
         phone: _phoneController.text.trim(),
         aadhar: widget.aadhar,
