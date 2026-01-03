@@ -168,3 +168,4 @@ flutter run
 cd police_dashboard
 flutter pub get
 flutter run -d chrome
+
