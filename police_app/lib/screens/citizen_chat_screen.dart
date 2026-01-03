@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class CitizenChatScreen extends StatefulWidget {
@@ -90,7 +89,7 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
 
     try {
       // Save User Message
-      await FirebaseService.saveAIChatMessage(
+      await SupabaseService.saveAIChatMessage(
         userId: widget.phone, // Using phone as unique ID
         userName: widget.userName,
         sender: 'user',
@@ -102,7 +101,7 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
 
       // Generate and Save AI Reply
       final reply = _generateReply(text);
-      await FirebaseService.saveAIChatMessage(
+      await SupabaseService.saveAIChatMessage(
         userId: widget.phone,
         userName: widget.userName,
         sender: 'ai',
@@ -144,19 +143,17 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseService.getAIChatStream(widget.phone),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: SupabaseService.getAIChatStream(widget.phone),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading chat'));
                 }
                 
-                final docs = snapshot.data?.docs ?? [];
+                final docs = snapshot.data ?? [];
                 docs.sort((a, b) {
-                  final ma = a.data() as Map<String, dynamic>;
-                  final mb = b.data() as Map<String, dynamic>;
-                  final ta = (ma['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-                  final tb = (mb['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final ta = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final tb = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
                   return ta.compareTo(tb);
                 });
                 
@@ -184,7 +181,7 @@ class _CitizenChatScreenState extends State<CitizenChatScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
+                    final data = docs[index];
                     final isPolice = data['sender'] != 'user';
                     return _buildMessageBubble(data['message'] ?? '', isPolice);
                   },

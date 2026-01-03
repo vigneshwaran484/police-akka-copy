@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class SOSHistoryScreen extends StatefulWidget {
@@ -114,8 +113,8 @@ class _SOSHistoryScreenState extends State<SOSHistoryScreen> {
   }
 
   Widget _buildSOSList(BuildContext context, String statusFilter) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenSOSAlerts(widget.userId),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService.getCitizenSOSAlerts(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -124,14 +123,13 @@ class _SOSHistoryScreenState extends State<SOSHistoryScreen> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         
-        final docs = snapshot.data?.docs ?? [];
-        final items = docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        final docs = snapshot.data ?? [];
+        final items = docs.where((data) {
           
           if (_selectedDate != null) {
-            final timestamp = data['timestamp'];
-            if (timestamp is Timestamp) {
-              final date = timestamp.toDate();
+            final timestamp = data['created_at'];
+            if (timestamp is String) {
+              final date = DateTime.parse(timestamp);
               final isSameDay = date.year == _selectedDate!.year && 
                                 date.month == _selectedDate!.month && 
                                 date.day == _selectedDate!.day;
@@ -165,10 +163,10 @@ class _SOSHistoryScreenState extends State<SOSHistoryScreen> {
         }
 
         items.sort((a, b) {
-          final ta = (a.data() as Map<String, dynamic>)['timestamp'];
-          final tb = (b.data() as Map<String, dynamic>)['timestamp'];
-          if (ta is Timestamp && tb is Timestamp) {
-            return tb.compareTo(ta);
+          final ta = a['created_at'];
+          final tb = b['created_at'];
+          if (ta is String && tb is String) {
+            return DateTime.parse(tb).compareTo(DateTime.parse(ta));
           }
           return 0;
         });
@@ -178,10 +176,10 @@ class _SOSHistoryScreenState extends State<SOSHistoryScreen> {
           itemCount: items.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final data = items[index].data() as Map<String, dynamic>;
-            final timestamp = data['timestamp'] as Timestamp?;
+            final data = items[index];
+            final timestamp = data['created_at'] as String?;
             final timeStr = timestamp != null 
-                ? DateFormat('dd MMM yyyy, hh:mm a').format(timestamp.toDate())
+                ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(timestamp))
                 : 'Unknown Time';
 
             return Container(

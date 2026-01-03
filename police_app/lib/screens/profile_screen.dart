@@ -4,11 +4,12 @@ import '../widgets/watermark_base.dart';
 import 'incident_history_screen.dart';
 import 'sos_history_screen.dart';
 import 'my_queries_screen.dart';
+import '../services/supabase_service.dart';
 
-
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final String username;
   final String name;
+  final String userId;
   final String phone;
   final String aadhar;
 
@@ -16,9 +17,43 @@ class ProfileScreen extends StatelessWidget {
     super.key,
     required this.username,
     required this.name,
+    required this.userId,
     required this.phone,
     required this.aadhar,
   });
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _photoUrl;
+  late String _name;
+  late String _phone;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = widget.name;
+    _phone = widget.phone;
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    setState(() => _isLoading = true);
+    final data = await SupabaseService.getUserById(widget.userId);
+    if (data != null && mounted) {
+      setState(() {
+        _photoUrl = data['photo'];
+        _name = data['name'] ?? widget.name;
+        _phone = data['phone'] ?? widget.phone;
+        _isLoading = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,34 +61,25 @@ class ProfileScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Top Header with Logo
-                  _buildHeader(),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // User Avatar and Name
-                  _buildAvatarSection(context),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // User Info Card
-                  _buildInfoCard(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // Action Buttons
-                  _buildActionButtons(context),
-                  
-                  const SizedBox(height: 30),
-                ],
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 30),
+                      _buildAvatarSection(context),
+                      const SizedBox(height: 30),
+                      _buildInfoCard(),
+                      const SizedBox(height: 40),
+                      _buildActionButtons(context),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
         ),
       ),
     );
@@ -112,7 +138,10 @@ class ProfileScreen extends StatelessWidget {
               child: CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.grey[200],
-                child: const Icon(Icons.person, size: 80, color: Color(0xFFB0B0B0)),
+                backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                child: _photoUrl == null 
+                    ? const Icon(Icons.person, size: 80, color: Color(0xFFB0B0B0))
+                    : null,
               ),
             ),
             GestureDetector(
@@ -130,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 15),
         Text(
-          name.toUpperCase(),
+          _name.toUpperCase(),
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -160,9 +189,9 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.phone_android, 'PHONE NUMBER', phone),
+          _buildInfoRow(Icons.phone_android, 'PHONE NUMBER', _phone),
           const Divider(height: 30),
-          _buildInfoRow(Icons.badge, 'AADHAR NUMBER', aadhar),
+          _buildInfoRow(Icons.badge, 'AADHAR NUMBER', widget.aadhar),
         ],
       ),
     );
@@ -222,7 +251,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => MyQueriesScreen(userId: username)),
+                MaterialPageRoute(builder: (_) => MyQueriesScreen(userId: widget.userId)),
               );
             },
           ),
@@ -235,7 +264,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => IncidentHistoryScreen(userId: username)),
+                MaterialPageRoute(builder: (_) => IncidentHistoryScreen(userId: widget.userId)),
               );
             },
           ),
@@ -248,7 +277,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => SOSHistoryScreen(userId: username)),
+                MaterialPageRoute(builder: (_) => SOSHistoryScreen(userId: widget.userId)),
               );
             },
           ),
@@ -305,18 +334,24 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToEdit(BuildContext context) {
-    Navigator.push(
+  void _navigateToEdit(BuildContext context) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => EditProfileScreen(
-          userId: phone,
-          name: name,
-          phone: phone,
-          aadhar: aadhar,
-          photo: null,
+          username: widget.username,
+          userId: widget.userId,
+          name: _name,
+          phone: _phone,
+          aadhar: widget.aadhar,
+          photo: _photoUrl,
         ),
       ),
     );
+
+    if (result == true) {
+      _fetchUserData();
+    }
   }
 }
+

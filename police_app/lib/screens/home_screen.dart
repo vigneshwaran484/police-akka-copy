@@ -3,7 +3,7 @@ import 'profile_screen.dart';
 import 'report_incident_screen.dart';
 import 'guidance_screen.dart';
 import 'ai_chatbot_screen.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import 'write_to_us_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -11,6 +11,7 @@ import 'package:geocoding/geocoding.dart';
 class HomeScreen extends StatefulWidget {
   final String username;
   final String userName;
+  final String userId; // Added Firebase UID
   final String phone;
   final String aadhar;
 
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
     super.key,
     required this.username,
     required this.userName,
+    required this.userId,
     required this.phone,
     required this.aadhar,
   });
@@ -244,8 +246,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Close loading dialog
     if (context.mounted) Navigator.pop(context);
 
-    await FirebaseService.sendSOS(
-      userId: widget.username,
+    await SupabaseService.sendSOS(
+      userId: widget.userId,
       userName: widget.userName,
       location: locationInfo,
     );
@@ -326,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             MaterialPageRoute(
                               builder: (_) => ReportIncidentScreen(
                                 userName: widget.userName,
-                                userId: widget.username,
+                                userId: widget.userId,
                                 aadhar: widget.aadhar,
                               ),
                             ),
@@ -344,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               builder: (_) => ProfileScreen(
                                 username: widget.username,
                                 name: widget.userName,
+                                userId: widget.userId,
                                 phone: widget.phone,
                                 aadhar: widget.aadhar,
                               ),
@@ -366,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       MaterialPageRoute(
                         builder: (_) => ReportIncidentScreen(
                           userName: widget.userName,
-                          userId: widget.username,
+                          userId: widget.userId,
                           aadhar: widget.aadhar,
                         ),
                       ),
@@ -386,13 +389,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 20),
               // Tagline
-              const Text(
-                'TAGLINE!!!!!',
-                style: TextStyle(
-                  color: Color(0xFFDC2626),
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Digital Policing.\nReal Protection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFDC2626),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    fontStyle: FontStyle.italic,
+                    height: 1.2,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -430,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 MaterialPageRoute(
                                   builder: (_) => AIChatbotScreen(
                                     userName: widget.userName,
-                                    userId: widget.username,
+                                    userId: widget.userId,
                                   ),
                                 ),
                               );

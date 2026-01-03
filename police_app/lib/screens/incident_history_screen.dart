@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class IncidentHistoryScreen extends StatefulWidget {
@@ -113,8 +112,8 @@ class _IncidentHistoryScreenState extends State<IncidentHistoryScreen> {
   }
 
   Widget _buildIncidentList(BuildContext context, bool isCurrent) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenIncidents(widget.userId),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService.getCitizenIncidents(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -123,16 +122,15 @@ class _IncidentHistoryScreenState extends State<IncidentHistoryScreen> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         
-        final docs = snapshot.data?.docs ?? [];
-        final items = docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        final docs = snapshot.data ?? [];
+        final items = docs.where((data) {
           final status = data['status'] ?? 'pending';
           final isResolved = status == 'resolved' || status == 'closed';
           
           if (_selectedDate != null) {
-            final timestamp = data['timestamp'];
-            if (timestamp is Timestamp) {
-              final date = timestamp.toDate();
+            final timestamp = data['created_at'];
+            if (timestamp is String) {
+              final date = DateTime.parse(timestamp);
               final isSameDay = date.year == _selectedDate!.year && 
                                 date.month == _selectedDate!.month && 
                                 date.day == _selectedDate!.day;
@@ -181,10 +179,10 @@ class _IncidentHistoryScreenState extends State<IncidentHistoryScreen> {
         }
 
         items.sort((a, b) {
-          final ta = (a.data() as Map<String, dynamic>)['timestamp'];
-          final tb = (b.data() as Map<String, dynamic>)['timestamp'];
-          if (ta is Timestamp && tb is Timestamp) {
-            return tb.compareTo(ta);
+          final ta = a['created_at'];
+          final tb = b['created_at'];
+          if (ta is String && tb is String) {
+            return DateTime.parse(tb).compareTo(DateTime.parse(ta));
           }
           return 0;
         });
@@ -194,7 +192,7 @@ class _IncidentHistoryScreenState extends State<IncidentHistoryScreen> {
           itemCount: items.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final i = items[index].data() as Map<String, dynamic>;
+            final i = items[index];
             final status = i['status'] ?? 'pending';
             final type = i['type'] ?? 'INCIDENT';
             

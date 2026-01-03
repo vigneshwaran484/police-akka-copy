@@ -1,9 +1,9 @@
 class AppConfig {
   // Gemini AI API Key (Legacy)
-  static const String geminiApiKey = 'AIzaSyBmg9EgwKqCtxSxt0W0ik8pliUoaU6Uzes';
+  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
 
   // Groq API Key
-  static const String groqApiKey = 'YOUR_GROQ_API_KEY_HERE'; // TODO: Enter your Groq API Key here
+  static const String groqApiKey = 'YOUR_GROQ_API_KEY';
   
   // App Configuration
   static const String appName = 'Police Akka';

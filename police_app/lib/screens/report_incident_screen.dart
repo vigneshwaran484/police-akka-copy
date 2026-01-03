@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -167,7 +167,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     setState(() => _submitting = true);
 
     try {
-      final incidentId = await FirebaseService.reportIncident(
+      final incidentId = await SupabaseService.reportIncident(
         userId: widget.userId,
         userName: widget.userName,
         type: selectedType!,
@@ -176,27 +176,19 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
       ).timeout(const Duration(seconds: 20));
       if (!mounted) return;
       if (_imagePaths.isNotEmpty || _videoPaths.isNotEmpty || _audioPaths.isNotEmpty) {
-        if (!FirebaseService.storageUploadsDisabled) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Uploading media in background...')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Attachments saved without upload (test mode)')),
-          );
-        }
-        FirebaseService.uploadIncidentMedia(
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading media in background...')),
+        );
+        SupabaseService.uploadIncidentMedia(
           incidentId: incidentId,
           imagePaths: _imagePaths,
           videoPaths: _videoPaths,
           audioPaths: _audioPaths,
         ).then((_) {
           if (!mounted) return;
-          if (!FirebaseService.storageUploadsDisabled) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Media uploaded')),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Media uploaded')),
+          );
         }).catchError((e) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(

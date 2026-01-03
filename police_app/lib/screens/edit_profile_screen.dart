@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  // ... existing fields ...
+  final String username;
   final String userId;
   final String name;
   final String phone;
@@ -12,6 +12,7 @@ class EditProfileScreen extends StatefulWidget {
   final String? photo;
   const EditProfileScreen({
     super.key,
+    required this.username,
     required this.userId,
     required this.name,
     required this.phone,
@@ -24,6 +25,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _phoneController;
+  String? _photoPath;
   String? _photoFileName;
   bool _saving = false;
   @override
@@ -38,6 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (path != null) {
         final parts = path.split('/');
         setState(() {
+          _photoPath = path;
           _photoFileName = parts.isNotEmpty ? parts.last : path;
         });
       }
@@ -46,16 +49,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await FirebaseService.saveCitizenProfile(
-        username: widget.userId,
+      String? finalPhotoUrl = widget.photo;
+
+      if (_photoPath != null) {
+        finalPhotoUrl = await SupabaseService.uploadProfilePhoto(widget.userId, _photoPath!);
+      }
+
+      await SupabaseService.saveCitizenProfile(
+        userId: widget.userId,
+        username: widget.username,
         name: widget.name,
         phone: _phoneController.text.trim(),
         aadhar: widget.aadhar,
-        photo: _photoFileName ?? widget.photo,
+        photo: finalPhotoUrl,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Return true to indicate update
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));

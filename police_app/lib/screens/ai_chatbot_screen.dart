@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/ai_service.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class AIChatbotScreen extends StatefulWidget {
@@ -34,18 +33,18 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
     if (message.isEmpty || _isThinking) return;
 
     _messageController.clear();
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.userId;
+    final currentUserId = widget.userId;
 
     // Get history for context
     List<Map<String, dynamic>> history = [];
     try {
-      history = await FirebaseService.getRecentAIChatHistory(currentUserId);
+      history = await SupabaseService.getRecentAIChatHistory(currentUserId);
     } catch (e) {
       print('Error fetching history: $e');
     }
 
     // Save User Message
-    await FirebaseService.saveAIChatMessage(
+    await SupabaseService.saveAIChatMessage(
       userId: currentUserId,
       userName: widget.userName,
       sender: 'user',
@@ -60,7 +59,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
       final aiResponse = await AIService.sendMessage(message, history);
 
       // Save AI Response
-      await FirebaseService.saveAIChatMessage(
+      await SupabaseService.saveAIChatMessage(
         userId: currentUserId,
         userName: widget.userName,
         sender: 'ai',
@@ -93,7 +92,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? widget.userId;
+    final currentUserId = widget.userId;
 
     return WatermarkBase(
       child: Scaffold(
@@ -137,8 +136,8 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseService.getAIChatHistory(currentUserId),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: SupabaseService.getAIChatHistory(currentUserId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return const Center(child: Text('Error loading chat'));
@@ -147,12 +146,10 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final docs = snapshot.data?.docs ?? [];
+                final docs = snapshot.data ?? [];
                 docs.sort((a, b) {
-                  final ma = a.data() as Map<String, dynamic>;
-                  final mb = b.data() as Map<String, dynamic>;
-                  final ta = (ma['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-                  final tb = (mb['timestamp'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final ta = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final tb = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
                   return tb.compareTo(ta); // Newest first
                 });
 
@@ -224,7 +221,7 @@ class _AIChatbotScreenState extends State<AIChatbotScreen> {
                     // Mapping actual data index
                     // If thinking, data index is index - 1
                     final dataIndex = _isThinking ? index - 1 : index;
-                    final data = docs[dataIndex].data() as Map<String, dynamic>;
+                    final data = docs[dataIndex];
                     final isUser = data['sender'] == 'user';
                     final message = data['message'] ?? '';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 
 class OtpScreen extends StatefulWidget {
   final String username;
@@ -100,23 +100,19 @@ class _OtpScreenState extends State<OtpScreen> {
                   
                   try {
                     // Sign in with phone credential
-                    final user = await FirebaseService.signInWithPhone(
-                      widget.verificationId,
+                    final user = await SupabaseService.signInWithPhone(
+                      widget.phone,
                       otp,
+                      verificationId: widget.verificationId,
                     );
                     
                     if (user == null) {
-                      if (mounted) {
-                        Navigator.pop(context); // Close loading
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invalid OTP. Please try again.')),
-                        );
-                      }
-                      return;
+                      throw 'Login failed (User null)';
                     }
                     
                     // Save citizen profile with username as ID
-                    await FirebaseService.saveCitizenProfile(
+                    await SupabaseService.saveCitizenProfile(
+                      userId: user.uid,
                       username: widget.username,
                       name: widget.name,
                       phone: widget.phone,
@@ -131,6 +127,7 @@ class _OtpScreenState extends State<OtpScreen> {
                           builder: (_) => HomeScreen(
                             username: widget.username,
                             userName: widget.name,
+                            userId: user.uid,
                             phone: widget.phone,
                             aadhar: widget.aadhar,
                           ),
@@ -142,7 +139,10 @@ class _OtpScreenState extends State<OtpScreen> {
                     if (mounted) {
                       Navigator.pop(context); // Close loading
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: ${e.toString()}')),
+                        SnackBar(
+                          content: Text('Login Error: ${e.toString().replaceAll("Exception:", "")}'),
+                          duration: const Duration(seconds: 5),
+                        ),
                       );
                     }
                   }
@@ -168,4 +168,3 @@ class _OtpScreenState extends State<OtpScreen> {
     );
   }
 }
-

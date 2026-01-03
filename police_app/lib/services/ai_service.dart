@@ -4,7 +4,7 @@ import '../config/app_config.dart';
 
 class AIService {
   static const String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  static const String _model = 'llama-3.1-8b-instant'; // Fast and efficient model
+  static const String _model = 'llama-3.3-70b-versatile'; // Groq Llama 3 Model
   static const String _systemPrompt = 
     'You are a helpful Virtual Police Guide for Tamil Nadu Police. '
     'Assist citizens with information about police services, filing reports, '
@@ -26,21 +26,28 @@ class AIService {
         return _buildAppHelpResponse(userMessage);
       }
 
-      // Prepare messages list with system prompt first
-      final messages = [
-        {'role': 'system', 'content': _systemPrompt + '\n\nApp Guide:\n' + AppConfig.appUsageGuide},
-      ];
+      // Prepare messages for Groq API (OpenAI format)
+      final List<Map<String, dynamic>> messages = [];
 
-      // Add history
+      // Add System Prompt
+      messages.add({
+        'role': 'system',
+        'content': '$_systemPrompt\n\nApp Guide:\n${AppConfig.appUsageGuide}'
+      });
+
+      // Add History
       for (var msg in history) {
         messages.add({
           'role': msg['sender'] == 'user' ? 'user' : 'assistant',
-          'content': msg['message'] ?? '',
+          'content': msg['message'] ?? ''
         });
       }
 
-      // Add current message
-      messages.add({'role': 'user', 'content': userMessage});
+      // Add Current User Message
+      messages.add({
+        'role': 'user',
+        'content': userMessage
+      });
 
       print('🤖 [AI DEBUG] Sending request to Groq...');
       
@@ -60,17 +67,21 @@ class AIService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'];
+        final content = data['choices']?[0]['message']?['content'] ?? 'No response received.';
         print('🤖 [AI DEBUG] Received response: ${content.substring(0, content.length > 50 ? 50 : content.length)}...');
         return content;
       } else {
         print('❌ [AI ERROR] API Error: ${response.statusCode} - ${response.body}');
-        return 'I apologize, but I am having trouble connecting to the server. Please try again later.';
+        return 'I apologize, but I am having trouble connecting to the AI server. Please try again later.';
       }
     } catch (e) {
       print('❌ [AI ERROR] Exception: $e');
       return 'I apologize, but an unexpected error occurred. Please check your internet connection.';
     }
+  }
+
+  static Future<void> _debugListModels() async {
+    // Not implemented for Groq yet
   }
 
   static bool _isAppHelpQuery(String text) {

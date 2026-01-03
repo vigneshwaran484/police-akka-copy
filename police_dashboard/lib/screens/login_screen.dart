@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import 'dashboard_screen.dart';
 
 class PoliceLoginScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
 
     setState(() => _isLoading = true);
     
-    final user = await PoliceFirebaseService.signInPolice(
+    final user = await PoliceSupabaseService.signInPolice(
       _emailController.text.trim(),
       _passwordController.text,
     );
@@ -35,7 +35,7 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
     } else if (mounted) {
-      _showError('Invalid credentials. Use officer@tnpolice.gov.in');
+      _showError('Invalid credentials. Please try again.');
     }
   }
 

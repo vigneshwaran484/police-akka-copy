@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'otp_screen.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -143,7 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   
                   // Check if username is unique
-                  final exists = await FirebaseService.checkUsernameExists(username);
+                  final exists = await SupabaseService.checkUsernameExists(username);
                   if (exists) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     builder: (context) => const Center(child: CircularProgressIndicator()),
                   );
                   
-                  await FirebaseService.verifyPhoneNumber(
+                  await SupabaseService.verifyPhoneNumber(
                     phoneNumber: fullPhone,
                     onCodeSent: (String verificationId) {
                       Navigator.pop(context); // Close loading

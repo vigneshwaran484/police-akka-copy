@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/watermark_base.dart';
 
 class MyQueriesScreen extends StatefulWidget {
@@ -113,8 +112,8 @@ class _MyQueriesScreenState extends State<MyQueriesScreen> {
   }
 
   Widget _buildQueryList(BuildContext context, bool showResponded) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService.getCitizenQueries(widget.userId),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService.getCitizenQueries(widget.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -122,17 +121,16 @@ class _MyQueriesScreenState extends State<MyQueriesScreen> {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        final docs = snapshot.data?.docs ?? [];
+        final docs = snapshot.data ?? [];
         
-        final filteredDocs = docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        final filteredDocs = docs.where((data) {
           final status = data['status'] ?? 'pending';
           final isRes = status == 'responded' || status == 'resolved';
           
           if (_selectedDate != null) {
-            final timestamp = data['timestamp'];
-            if (timestamp is Timestamp) {
-              final date = timestamp.toDate();
+            final timestamp = data['created_at'];
+            if (timestamp is String) {
+              final date = DateTime.parse(timestamp);
               final isSameDay = date.year == _selectedDate!.year && 
                                 date.month == _selectedDate!.month && 
                                 date.day == _selectedDate!.day;
@@ -174,12 +172,12 @@ class _MyQueriesScreenState extends State<MyQueriesScreen> {
           );
         }
 
-        final items = filteredDocs.map((d) => d.data() as Map<String, dynamic>).toList()
+        final items = filteredDocs.toList()
           ..sort((a, b) {
-            final ta = a['timestamp'];
-            final tb = b['timestamp'];
-            if (ta is Timestamp && tb is Timestamp) {
-              return tb.compareTo(ta);
+            final ta = a['created_at'];
+            final tb = b['created_at'];
+            if (ta is String && tb is String) {
+              return DateTime.parse(tb).compareTo(DateTime.parse(ta));
             }
             return 0;
           });

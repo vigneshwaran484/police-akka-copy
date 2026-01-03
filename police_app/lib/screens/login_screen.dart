@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'otp_screen.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool isNewUser;
@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.isNewUser ? 'Sign Up' : 'Login using Aadhar',
+              widget.isNewUser ? 'Sign Up' : 'Login using Phone Number',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,
@@ -89,33 +89,28 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
+              const Text(
+                'Enter Aadhar Number',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _aadharController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.grey[600],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+              ),
               const SizedBox(height: 20),
             ],
             
-            // Aadhar Number (Always Visible)
-            const Text(
-              'Enter Aadhar Number',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _aadharController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.grey[600],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-
-            // Phone Number (Only for Registration)
-            if (widget.isNewUser) ...[
+            // Phone Number (Always Visible)
             const Text(
               'Enter Phone Number',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -134,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               style: const TextStyle(color: Colors.white),
             ),
-            ],
 
             const SizedBox(height: 40),
             Center(
@@ -153,24 +147,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     builder: (context) => const Center(child: CircularProgressIndicator()),
                   );
 
-                  // LOGIC FOR LOGIN (AADHAR -> PHONE)
+                  // LOGIC FOR LOGIN (PHONE -> LOOKUP)
                   if (!widget.isNewUser) {
-                    final aadhar = _aadharController.text.trim();
-                    if (aadhar.isEmpty) {
+                    final phoneInput = _phoneController.text.trim();
+                    if (phoneInput.isEmpty) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter Aadhar Number')),
+                        const SnackBar(content: Text('Please enter Phone Number')),
                       );
                       return;
                     }
 
-                    // Lookup User by Aadhar
-                    final userData = await FirebaseService.getUserByAadhar(aadhar);
+                    // Lookup User by Phone
+                    final userData = await SupabaseService.getUserByPhone(phoneInput);
                     
                     if (userData == null) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Aadhar not registered. Please Register first.')),
+                        const SnackBar(content: Text('Phone number not registered. Please Register first.')),
                       );
                       return;
                     }
@@ -205,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                   
                   // Verify Phone (Send OTP)
-                  await FirebaseService.verifyPhoneNumber(
+                  await SupabaseService.verifyPhoneNumber(
                     phoneNumber: fullPhone,
                     onCodeSent: (String verificationId) {
                       Navigator.pop(context); // Close loading

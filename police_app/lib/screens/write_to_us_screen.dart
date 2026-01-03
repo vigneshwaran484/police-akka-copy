@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/watermark_base.dart';
-import '../services/firebase_service.dart';
+import '../services/supabase_service.dart';
 
 class WriteToUsScreen extends StatefulWidget {
   final String userName;
@@ -48,7 +48,7 @@ class _WriteToUsScreenState extends State<WriteToUsScreen> {
     setState(() => _submitting = true);
 
     try {
-      await FirebaseService.submitQuery(
+      await SupabaseService.submitQuery(
         userId: widget.userId,
         name: widget.userName,
         phone: widget.userId,
