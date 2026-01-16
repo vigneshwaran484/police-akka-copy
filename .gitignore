@@ -1,0 +1,5 @@
+police_app/lib/config/secrets.dart
+.dart_tool/
+build/
+.pub-cache/
+.packages
